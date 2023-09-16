@@ -75,6 +75,13 @@ class Inventory : Actor
 	flagdef PickupFlash: none, 6;
 	flagdef InterHubStrip: none, 12;
 
+    enum EPreHandlePickupResult
+    {
+        PRE_HANDLE_PICKUP_PASS,
+        PRE_HANDLE_PICKUP_FALSE,
+        PRE_HANDLE_PICKUP_TRUE
+    }
+
 	Default
 	{
 		Inventory.Amount 1;
@@ -426,6 +433,41 @@ class Inventory : Actor
 		}
 		return copy;
 	}
+	
+	//===========================================================================
+	//
+	// Inventory :: PreHandlePickup
+	//
+	// Called unconditionally in TryPickup() before HandlePickup(), allowing
+	// to process all items even their HandlePickup() call returns true.
+	//
+	//===========================================================================
+	
+	virtual EPreHandlePickupResult PreHandlePickup(Inventory item)
+	{
+		return PRE_HANDLE_PICKUP_PASS;
+	}
+	
+	//===========================================================================
+	//
+	// Inventory :: CallPreHandlePickup
+	//
+	// Runs all PreHandlePickup methods in the chain
+	//
+	//===========================================================================
+	
+	virtual EPreHandlePickupResult CallPreHandlePickup(Inventory item)
+	{       
+		let me = self;
+        while (me != null)
+        {
+			EPreHandlePickupResult result = me.PreHandlePickup(item);
+            if (result != PRE_HANDLE_PICKUP_PASS)
+				return result;
+            me = me.Inv;
+        }
+		return PRE_HANDLE_PICKUP_PASS;
+	}
 
 	//===========================================================================
 	//
@@ -487,16 +529,29 @@ class Inventory : Actor
 	//
 	//===========================================================================
 
-	virtual protected bool TryPickup (in out Actor toucher)
-	{
-		Actor newtoucher = toucher; // in case changed by the powerup
+    virtual protected bool TryPickup (in out Actor toucher)
+    {
+        Actor newtoucher = toucher; // in case changed by the powerup
+ 
+        // If HandlePickup() returns true, it will set the IF_PICKUPGOOD flag
+        // to indicate that self item has been picked up. If the item cannot be
+        // picked up, then it leaves the flag cleared.
+ 
+        bPickupGood = false;
 
-		// If HandlePickup() returns true, it will set the IF_PICKUPGOOD flag
-		// to indicate that self item has been picked up. If the item cannot be
-		// picked up, then it leaves the flag cleared.
-
-		bPickupGood = false;
-		if (toucher.Inv != NULL && toucher.Inv.CallHandlePickup (self))
+		// [AA] If PreHandlePickup() returns PASS, the item will be processed
+		// as usual. If it returns FALSE, it'll block processing with
+		// HandlePickup(). Otherwise if it returns TRUE or if HandlePickup()
+		// returns true, it'll be processed.
+		let tInv = toucher.Inv;
+		EPreHandlePickupResult preHandled = PRE_HANDLE_PICKUP_PASS;
+		if (tInv != NULL)
+		{
+			preHandled = tInv.CallPreHandlePickup(self);
+		}
+        if (preHandled != PRE_HANDLE_PICKUP_FALSE && (preHandled == PRE_HANDLE_PICKUP_TRUE || (tInv != NULL  && tInv.CallHandlePickup (self))))
+		//if (tInv != NULL && tInv.CallHandlePickup (self))
+		//if (toucher.Inv != NULL && toucher.Inv.CallHandlePickup (self))
 		{
 			// Let something else the player is holding intercept the pickup.
 			if (!bPickupGood)
@@ -1130,10 +1185,6 @@ class Inventory : Actor
 	//===========================================================================
 
 	virtual void ModifyDamage(int damage, Name damageType, out int newdamage, bool passive, Actor inflictor = null, Actor source = null, int flags = 0) {}
-
-	virtual Vector2 ModifyBob(Vector2 Bob, double ticfrac) {return Bob;}
-
-	virtual Vector3, Vector3 ModifyBob3D(Vector3 Translation, Vector3 Rotation, double ticfrac) {return Translation, Rotation;}
 	
 
 	virtual bool Use (bool pickup) { return false; }
