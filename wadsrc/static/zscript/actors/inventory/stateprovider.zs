@@ -77,10 +77,10 @@ class StateProvider : Inventory
 	//
 	//---------------------------------------------------------------------------
 
-	action void A_FireBullets(double spread_xy, double spread_z, int numbullets, int damageperbullet, class<Actor> pufftype = "BulletPuff", int flags = 1, double range = 0, class<Actor> missile = null, double Spawnheight = 32, double Spawnofs_xy = 0)
+	action Actor A_FireBullets(double spread_xy, double spread_z, int numbullets, int damageperbullet, class<Actor> pufftype = "BulletPuff", int flags = 1, double range = 0, class<Actor> missile = null, double Spawnheight = 32, double Spawnofs_xy = 0, out array <Actor> puffs = null)
 	{
 		let player = player;
-		if (!player) return;
+		if (!player) return null;
 
 		let pawn = PlayerPawn(self);
 		let weapon = player.ReadyWeapon;
@@ -94,7 +94,7 @@ class StateProvider : Inventory
 		if ((flags & FBF_USEAMMO) && weapon &&  stateinfo != null && stateinfo.mStateType == STATE_Psprite)
 		{
 			if (!weapon.DepleteAmmo(weapon.bAltFire, true))
-				return;	// out of ammo
+				return null;	// out of ammo
 		}
 		
 		if (range == 0)	range = PLAYERMISSILERANGE;
@@ -111,6 +111,7 @@ class StateProvider : Inventory
 			A_StartSound(weapon.AttackSound, CHAN_WEAPON);
 		}
 
+		Actor puff;
 		if ((numbullets == 1 && !player.refire) || numbullets == 0)
 		{
 			int damage = damageperbullet;
@@ -170,7 +171,9 @@ class StateProvider : Inventory
 				if (!(flags & FBF_NORANDOM))
 					damage *= random[cabullet](1, 3);
 
-				let puff = LineAttack(pangle, range, slope, damage, 'Hitscan', pufftype, laflags, t);
+				let ppuff = LineAttack(pangle, range, slope, damage, 'Hitscan', pufftype, laflags, t);
+				if (i == 0)
+					puff = ppuff;
 
 				if (missile != null)
 				{
@@ -180,12 +183,12 @@ class StateProvider : Inventory
 					Actor proj = SpawnPlayerMissile(missile, bangle, ofs.X, ofs.Y, Spawnheight);
 					if (proj)
 					{
-						if (!puff)
+						if (!ppuff)
 						{
 							temp = true;
-							puff = LineAttack(bangle, range, bslope, 0, 'Hitscan', pufftype, laflags | LAF_NOINTERACT, t);
+							ppuff = LineAttack(bangle, range, bslope, 0, 'Hitscan', pufftype, laflags | LAF_NOINTERACT, t);
 						}
-						AimBulletMissile(proj, puff, flags, temp, false);
+						AimBulletMissile(proj, ppuff, flags, temp, false);
 						if (t.unlinked)
 						{
 							// Arbitary portals will make angle and pitch calculations unreliable.
@@ -196,8 +199,10 @@ class StateProvider : Inventory
 						}
 					}
 				}
+				puffs.Push(ppuff);
 			}
 		}
+		return puff;
 	}
 
 
