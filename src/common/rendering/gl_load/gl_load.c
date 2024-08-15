@@ -46,7 +46,6 @@ static void* PosixGetProcAddress (const GLubyte* name)
 #undef APIENTRY
 #endif
 #include <windows.h>
-#include <tchar.h>
 
 
 #ifdef _MSC_VER
@@ -77,20 +76,11 @@ static void CheckOpenGL(void)
 {
     if (opengl32dll == 0)
     {
-        opengl32dll = LoadLibrary(_T("OpenGL32.DLL"));
-		if (opengl32dll != 0)
-		{
-			createcontext = (HGLRC(WINAPI*)(HDC)) GetProcAddress(opengl32dll, "wglCreateContext");
-			deletecontext = (BOOL(WINAPI*)(HGLRC)) GetProcAddress(opengl32dll, "wglDeleteContext");
-			makecurrent = (BOOL(WINAPI*)(HDC, HGLRC)) GetProcAddress(opengl32dll, "wglMakeCurrent");
-			getprocaddress = (PROC(WINAPI*)(LPCSTR)) GetProcAddress(opengl32dll, "wglGetProcAddress");
-		}
-		else
-		{
-			// Should this ever happen we have no choice but to hard abort, there is no good way to recover.
-			MessageBoxA(0, "OpenGL32.dll not found", "Fatal error", MB_OK | MB_ICONERROR | MB_TASKMODAL);
-			exit(3);
-		}
+        opengl32dll = LoadLibrary(L"OpenGL32.DLL");
+        createcontext = (HGLRC(WINAPI*)(HDC)) GetProcAddress(opengl32dll, "wglCreateContext");
+        deletecontext = (BOOL(WINAPI*)(HGLRC)) GetProcAddress(opengl32dll, "wglDeleteContext");
+        makecurrent = (BOOL(WINAPI*)(HDC, HGLRC)) GetProcAddress(opengl32dll, "wglMakeCurrent");
+        getprocaddress = (PROC(WINAPI*)(LPCSTR)) GetProcAddress(opengl32dll, "wglGetProcAddress");
     }
 }
 

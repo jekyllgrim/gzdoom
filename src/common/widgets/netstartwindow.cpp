@@ -2,7 +2,6 @@
 #include "netstartwindow.h"
 #include "version.h"
 #include "engineerrors.h"
-#include "gstrings.h"
 #include <zwidget/core/timer.h>
 #include <zwidget/widgets/textlabel/textlabel.h>
 #include <zwidget/widgets/pushbutton/pushbutton.h>

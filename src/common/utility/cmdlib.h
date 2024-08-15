@@ -71,8 +71,6 @@ int strbin (char *str);
 FString strbin1 (const char *start);
 
 void CreatePath(const char * fn);
-void RemoveFile(const char* file);
-int RemoveDir(const char* file);
 
 FString ExpandEnvVars(const char *searchpathstring);
 FString NicePath(const char *path);

@@ -38,7 +38,6 @@
 #include "renderstyle.h"
 #include "dthinker.h"
 #include "palettecontainer.h"
-#include "animations.h"
 
 enum
 {
@@ -55,44 +54,35 @@ struct FLevelLocals;
 
 enum EParticleFlags
 {
-	SPF_FULLBRIGHT				= 1 << 0,
-	SPF_RELPOS					= 1 << 1,
-	SPF_RELVEL					= 1 << 2,
-	SPF_RELACCEL				= 1 << 3,
-	SPF_RELANG					= 1 << 4,
-	SPF_NOTIMEFREEZE			= 1 << 5,
-	SPF_ROLL					= 1 << 6,
-	SPF_REPLACE					= 1 << 7,
-	SPF_NO_XY_BILLBOARD			= 1 << 8,
-	SPF_LOCAL_ANIM				= 1 << 9,
-	SPF_NEGATIVE_FADESTEP		= 1 << 10,
-	SPF_FACECAMERA				= 1 << 11,
-	SPF_NOFACECAMERA			= 1 << 12,
-	SPF_ROLLCENTER				= 1 << 13,
-	SPF_NOMIPMAP				= 1 << 14,
+	SPF_FULLBRIGHT =		1,
+	SPF_RELPOS =			1 << 1,
+	SPF_RELVEL =			1 << 2,
+	SPF_RELACCEL =			1 << 3,
+	SPF_RELANG =			1 << 4,
+	SPF_NOTIMEFREEZE =		1 << 5,
+	SPF_ROLL =				1 << 6,
+	SPF_REPLACE =			1 << 7,
+	SPF_NO_XY_BILLBOARD =	1 << 8,
 };
-
 class DVisualThinker;
 struct particle_t
 {
-	subsector_t* subsector; //+8 = 8
-    DVector3 Pos; //+24 = 32
-    FVector3 Vel; //+12 = 44
-    FVector3 Acc; //+12 = 56
-	float    size, sizestep; //+8 = 64
-    float    fadestep, alpha; //+8 = 72
-    int32_t    ttl; // +4 = 76
-    int        color; //+4 = 80
-    FTextureID texture; // +4 = 84
-    ERenderStyle style; //+4 = 88
-    float Roll, RollVel, RollAcc; //+12 = 100
-    uint16_t    tnext, snext, tprev; //+6 = 106
-	uint16_t flags; //+2 = 108
-	// uint32_t padding; //+4 = 112
-	FStandaloneAnimation animData; //+16 = 128
+    DVector3 Pos;
+    DVector3 Vel;
+    DVector3 Acc;
+    double    size, sizestep;
+    float    fadestep, alpha;
+    subsector_t* subsector;
+    int32_t    ttl;
+    int        color;
+    FTextureID texture;
+    ERenderStyle style;
+    double Roll, RollVel, RollAcc;
+    uint16_t    tnext, snext, tprev;
+    bool    bright;
+	uint16_t flags;
+	DVisualThinker *sprite;
 };
-
-static_assert(sizeof(particle_t) == 128, "Only LP64/LLP64 is supported");
 
 const uint16_t NO_PARTICLE = 0xffff;
 
@@ -162,28 +152,34 @@ class DVisualThinker : public DThinker
 {
 	DECLARE_CLASS(DVisualThinker, DThinker);
 public:
-	DVector3		Prev;
-	DVector2		Scale,
-					Offset;
-	float			PrevRoll;
+	DVector3		Pos, Vel, Prev;
+	DVector2		Scale, Offset;
+	double			Roll, PrevRoll, Alpha;
 	int16_t			LightLevel;
+
+	int				scolor;
+
+	FRenderStyle	Style;
+	FTextureID		Texture;
 	FTranslationID	Translation;
-	FTextureID		AnimatedTexture;
+
+	uint16_t		Flags;
 	sector_t		*cursector;
 
-	bool			bFlipOffsetX,
-					bFlipOffsetY,
-					bXFlip,
-					bYFlip,				// flip the sprite on the x/y axis.
+	bool			bXFlip, bYFlip,		// flip the sprite on the x/y axis.
 					bDontInterpolate,	// disable all interpolation
 					bAddLightLevel;		// adds sector light level to 'LightLevel'
 
 	// internal only variables
+	subsector_t		*sub;
 	particle_t		PT;
 	HWSprite		*spr; //in an effort to cache the result. 
 
+	
+
 	DVisualThinker();
 	void Construct();
+	void CallPostBeginPlay() override;
 	void OnDestroy() override;
 
 	static DVisualThinker* NewVisualThinker(FLevelLocals* Level, PClass* type);
@@ -198,5 +194,4 @@ public:
 	void UpdateSpriteInfo();
 	void Serialize(FSerializer& arc) override;
 
-	float GetOffset(bool y) const;
 };

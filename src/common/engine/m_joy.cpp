@@ -120,30 +120,16 @@ bool M_LoadJoystickConfig(IJoystickConfig *joy)
 	{
 		return false;
 	}
-
-	assert(GameConfig);
-
 	value = GameConfig->GetValueForKey("Enabled");
-	if (value)
+	if (value != NULL)
 	{
 		joy->SetEnabled((bool)atoi(value));
 	}
-
-	if(joy->AllowsEnabledInBackground())
-	{
-		value = GameConfig->GetValueForKey("EnabledInBackground");
-		if (value)
-		{
-			joy->SetEnabledInBackground((bool)atoi(value));
-		}
-	}
-
 	value = GameConfig->GetValueForKey("Sensitivity");
-	if (value)
+	if (value != NULL)
 	{
 		joy->SetSensitivity((float)atof(value));
 	}
-
 	numaxes = joy->GetNumAxes();
 	for (int i = 0; i < numaxes; ++i)
 	{
@@ -151,21 +137,21 @@ bool M_LoadJoystickConfig(IJoystickConfig *joy)
 
 		mysnprintf(key + axislen, countof(key) - axislen, "deadzone");
 		value = GameConfig->GetValueForKey(key);
-		if (value)
+		if (value != NULL)
 		{
 			joy->SetAxisDeadZone(i, (float)atof(value));
 		}
 
 		mysnprintf(key + axislen, countof(key) - axislen, "scale");
 		value = GameConfig->GetValueForKey(key);
-		if (value)
+		if (value != NULL)
 		{
 			joy->SetAxisScale(i, (float)atof(value));
 		}
 
 		mysnprintf(key + axislen, countof(key) - axislen, "map");
 		value = GameConfig->GetValueForKey(key);
-		if (value)
+		if (value != NULL)
 		{
 			EJoyAxis gameaxis = (EJoyAxis)atoi(value);
 			if (gameaxis < JOYAXIS_None || gameaxis >= NUM_JOYAXIS)
@@ -199,12 +185,6 @@ void M_SaveJoystickConfig(IJoystickConfig *joy)
 		{
 			GameConfig->SetValueForKey("Enabled", "0");
 		}
-
-		if (!joy->AllowsEnabledInBackground() && joy->GetEnabledInBackground())
-		{
-			GameConfig->SetValueForKey("EnabledInBackground", "1");
-		}
-		
 		if (!joy->IsSensitivityDefault())
 		{
 			mysnprintf(value, countof(value), "%g", joy->GetSensitivity());

@@ -1,5 +1,5 @@
 
-vec2 lightAttenuation(int i, vec3 normal, vec3 viewdir, float lightcolorA, float glossiness, float specularLevel)
+vec2 lightAttenuation(int i, vec3 normal, vec3 viewdir, float lightcolorA)
 {
 	vec4 lightpos = lights[i];
 	vec4 lightspot1 = lights[i+2];
@@ -25,6 +25,9 @@ vec2 lightAttenuation(int i, vec3 normal, vec3 viewdir, float lightcolorA, float
 	if (attenuation <= 0.0)
 		return vec2(0.0);
 
+	float glossiness = uSpecularMaterial.x;
+	float specularLevel = uSpecularMaterial.y;
+
 	vec3 halfdir = normalize(viewdir + lightdir);
 	float specAngle = clamp(dot(halfdir, normal), 0.0f, 1.0f);
 	float phExp = glossiness * 4.0f;
@@ -48,7 +51,7 @@ vec3 ProcessMaterialLight(Material material, vec3 color)
 			for(int i=lightRange.x; i<lightRange.y; i+=4)
 			{
 				vec4 lightcolor = lights[i+1];
-				vec2 attenuation = lightAttenuation(i, normal, viewdir, lightcolor.a, material.Glossiness, material.SpecularLevel);
+				vec2 attenuation = lightAttenuation(i, normal, viewdir, lightcolor.a);
 				dynlight.rgb += lightcolor.rgb * attenuation.x;
 				specular.rgb += lightcolor.rgb * attenuation.y;
 			}
@@ -57,7 +60,7 @@ vec3 ProcessMaterialLight(Material material, vec3 color)
 			for(int i=lightRange.y; i<lightRange.z; i+=4)
 			{
 				vec4 lightcolor = lights[i+1];
-				vec2 attenuation = lightAttenuation(i, normal, viewdir, lightcolor.a, material.Glossiness, material.SpecularLevel);
+				vec2 attenuation = lightAttenuation(i, normal, viewdir, lightcolor.a);
 				dynlight.rgb -= lightcolor.rgb * attenuation.x;
 				specular.rgb -= lightcolor.rgb * attenuation.y;
 			}
@@ -96,7 +99,7 @@ vec3 ProcessMaterialLight(Material material, vec3 color)
 			for(int i=lightRange.z; i<lightRange.w; i+=4)
 			{
 				vec4 lightcolor = lights[i+1];
-				vec2 attenuation = lightAttenuation(i, normal, viewdir, lightcolor.a, material.Glossiness, material.SpecularLevel);
+				vec2 attenuation = lightAttenuation(i, normal, viewdir, lightcolor.a);
 				addlight.rgb += lightcolor.rgb * attenuation.x;
 			}
 

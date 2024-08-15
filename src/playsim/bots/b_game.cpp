@@ -296,8 +296,8 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 
 	thebot->inuse = BOTINUSE_Waiting;
 
-	Net_WriteInt8 (DEM_ADDBOT);
-	Net_WriteInt8 (botshift);
+	Net_WriteByte (DEM_ADDBOT);
+	Net_WriteByte (botshift);
 	{
 		//Set color.
 		FString concat = thebot->Info;
@@ -305,29 +305,29 @@ bool FCajunMaster::SpawnBot (const char *name, int color)
 		{
 			concat << colors[bot_next_color];
 		}
-		if (FTeam::IsValid (thebot->lastteam))
+		if (TeamLibrary.IsValidTeam (thebot->lastteam))
 		{ // Keep the bot on the same team when switching levels
 			concat.AppendFormat("\\team\\%d\n", thebot->lastteam);
 		}
 		Net_WriteString (concat.GetChars());
 	}
-	Net_WriteInt8(thebot->skill.aiming);
-	Net_WriteInt8(thebot->skill.perfection);
-	Net_WriteInt8(thebot->skill.reaction);
-	Net_WriteInt8(thebot->skill.isp);
+	Net_WriteByte(thebot->skill.aiming);
+	Net_WriteByte(thebot->skill.perfection);
+	Net_WriteByte(thebot->skill.reaction);
+	Net_WriteByte(thebot->skill.isp);
 
 	return true;
 }
 
 void FCajunMaster::TryAddBot (FLevelLocals *Level, uint8_t **stream, int player)
 {
-	int botshift = ReadInt8 (stream);
+	int botshift = ReadByte (stream);
 	char *info = ReadString (stream);
 	botskill_t skill;
-	skill.aiming = ReadInt8 (stream);
-	skill.perfection = ReadInt8 (stream);
-	skill.reaction = ReadInt8 (stream);
-	skill.isp = ReadInt8 (stream);
+	skill.aiming = ReadByte (stream);
+	skill.perfection = ReadByte (stream);
+	skill.reaction = ReadByte (stream);
+	skill.isp = ReadByte (stream);
 
 	botinfo_t *thebot = NULL;
 
@@ -587,7 +587,7 @@ bool FCajunMaster::LoadBots ()
 					if (IsNum (sc.String))
 					{
 						teamnum = atoi (sc.String);
-						if (!FTeam::IsValid (teamnum))
+						if (!TeamLibrary.IsValidTeam (teamnum))
 						{
 							teamnum = TEAM_NONE;
 						}

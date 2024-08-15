@@ -65,8 +65,6 @@
 #endif
 #endif
 
-extern bool AppActive;
-
 // TYPES -------------------------------------------------------------------
 
 typedef DWORD (WINAPI *XInputGetStateType)(DWORD index, XINPUT_STATE *state);
@@ -107,10 +105,6 @@ public:
 	bool GetEnabled();
 	void SetEnabled(bool enabled);
 
-	bool AllowsEnabledInBackground() { return true; }
-	bool GetEnabledInBackground() { return EnabledInBackground; }
-	void SetEnabledInBackground(bool enabled) { EnabledInBackground = enabled; }
-
 	void SetDefaultConfig();
 	FString GetIdentifier();
 
@@ -148,7 +142,6 @@ protected:
 	int LastButtons;
 	bool Connected;
 	bool Enabled;
-	bool EnabledInBackground;
 
 	void Attached();
 	void Detached();
@@ -751,10 +744,7 @@ void FXInputManager::ProcessInput()
 {
 	for (int i = 0; i < XUSER_MAX_COUNT; ++i)
 	{
-		if(AppActive || Devices[i]->GetEnabledInBackground())
-		{
-			Devices[i]->ProcessInput();
-		}
+		Devices[i]->ProcessInput();
 	}
 }
 

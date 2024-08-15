@@ -2,7 +2,7 @@
 #include "window/window.h"
 #include <stdexcept>
 
-#ifdef _WIN32
+#ifdef WIN32
 
 #include "win32/win32window.h"
 

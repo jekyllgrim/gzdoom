@@ -261,7 +261,7 @@ void CT_Drawer (void)
 			if (!!rv) return;
 		}
 
-		FStringf prompt("%s ", GStrings.GetString("TXT_SAY"));
+		FStringf prompt("%s ", GStrings("TXT_SAY"));
 		int x, scalex, y, promptwidth;
 
 		y = (viewactive || gamestate != GS_LEVEL) ? -displayfont->GetHeight()-2 : -displayfont->GetHeight() - 22;
@@ -371,8 +371,8 @@ static void ShoveChatStr (const char *str, uint8_t who)
 		who |= 2;
 	}
 
-	Net_WriteInt8 (DEM_SAY);
-	Net_WriteInt8 (who);
+	Net_WriteByte (DEM_SAY);
+	Net_WriteByte (who);
 
 	if (chat_substitution && DoSubstitution (substBuff, str))
 	{

@@ -42,7 +42,6 @@
 ** compile with something other than Visual C++ or GCC.
 */
 
-#include <cassert>
 #include "autosegs.h"
 
 #ifdef _WIN32

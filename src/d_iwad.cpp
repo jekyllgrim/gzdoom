@@ -49,7 +49,6 @@
 #include "fs_findfile.h"
 #include "findfile.h"
 #include "i_interface.h"
-#include "gstrings.h"
 
 EXTERN_CVAR(Bool, queryiwad);
 EXTERN_CVAR(String, defaultiwad);
@@ -57,7 +56,6 @@ EXTERN_CVAR(Bool, disableautoload)
 EXTERN_CVAR(Bool, autoloadlights)
 EXTERN_CVAR(Bool, autoloadbrightmaps)
 EXTERN_CVAR(Bool, autoloadwidescreen)
-EXTERN_CVAR(String, language)
 
 //==========================================================================
 //
@@ -315,15 +313,12 @@ FIWadManager::FIWadManager(const char *firstfn, const char *optfn)
 
 	if (check.InitMultipleFiles(fns, &lfi, nullptr))
 	{
-		// this is for the IWAD picker. As we have a filesystem open here that contains the base files, it is the easiest place to load the strings early.
-		GStrings.LoadStrings(check, language);
 		int num = check.CheckNumForName("IWADINFO");
 		if (num >= 0)
 		{
 			auto data = check.ReadFile(num);
 			ParseIWadInfo("IWADINFO", data.string(), (int)data.size());
 		}
-
 	}
 }
 
@@ -727,10 +722,8 @@ int FIWadManager::IdentifyVersion (std::vector<std::string>&wadfiles, const char
 	}
 	int pick = 0;
 
-	// Present the IWAD selection box.
-	bool alwaysshow = (queryiwad && !Args->CheckParm("-iwad"));
-
-	if (alwaysshow || picks.Size() > 1)
+	// We got more than one so present the IWAD selection box.
+	if (picks.Size() > 1)
 	{
 		// Locate the user's prefered IWAD, if it was found.
 		if (defaultiwad[0] != '\0')
@@ -745,7 +738,7 @@ int FIWadManager::IdentifyVersion (std::vector<std::string>&wadfiles, const char
 				}
 			}
 		}
-		if (alwaysshow || picks.Size() > 1)
+		if (picks.Size() > 1)
 		{
 			if (!havepicked)
 			{
@@ -764,18 +757,9 @@ int FIWadManager::IdentifyVersion (std::vector<std::string>&wadfiles, const char
 				if (autoloadbrightmaps) flags |= 4;
 				if (autoloadwidescreen) flags |= 8;
 
-				FString extraArgs;
-
-				pick = I_PickIWad(&wads[0], (int)wads.Size(), queryiwad, pick, flags, extraArgs);
+				pick = I_PickIWad(&wads[0], (int)wads.Size(), queryiwad, pick, flags);
 				if (pick >= 0)
 				{
-					extraArgs.StripLeftRight();
-
-					if(extraArgs.Len() > 0)
-					{
-						Args->AppendArgsString(extraArgs);
-					}
-
 					disableautoload = !!(flags & 1);
 					autoloadlights = !!(flags & 2);
 					autoloadbrightmaps = !!(flags & 4);

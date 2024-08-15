@@ -12,7 +12,6 @@
 class VulkanRenderDevice;
 class VkPPShader;
 class GraphicsPipelineBuilder;
-class ColorBlendAttachmentBuilder;
 
 class VkPipelineKey
 {
@@ -119,7 +118,7 @@ private:
 	VulkanRenderDevice* fb = nullptr;
 };
 
-ColorBlendAttachmentBuilder& BlendMode(ColorBlendAttachmentBuilder& builder, const FRenderStyle& style);
+GraphicsPipelineBuilder& BlendMode(GraphicsPipelineBuilder& builder, const FRenderStyle& style);
 
 class VkRenderPassManager
 {

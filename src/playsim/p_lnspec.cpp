@@ -1120,7 +1120,7 @@ FUNC(LS_Teleport_NewMap)
 FUNC(LS_Teleport)
 // Teleport (tid, sectortag, bNoSourceFog)
 {
-	int flags = TELF_DESTFOG | TELF_FDCOMPAT;
+	int flags = TELF_DESTFOG;
 	if (!arg2)
 	{
 		flags |= TELF_SOURCEFOG;
@@ -3180,7 +3180,7 @@ FUNC(LS_Autosave)
 	if (gameaction != ga_savegame)
 	{
 		Level->flags2 &= ~LEVEL2_NOAUTOSAVEHINT;
-		Net_WriteInt8 (DEM_CHECKAUTOSAVE);
+		Net_WriteByte (DEM_CHECKAUTOSAVE);
 	}
 	return true;
 }
@@ -3258,7 +3258,7 @@ FUNC(LS_SendToCommunicator)
 			// Get the message from the LANGUAGE lump.
 			FString msg;
 			msg.Format("TXT_COMM%d", arg2);
-			const char *str = GStrings.CheckString(msg.GetChars());
+			const char *str = GStrings[msg.GetChars()];
 			if (str != NULL)
 			{
 				Printf (PRINT_CHAT, "%s\n", str);

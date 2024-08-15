@@ -183,10 +183,6 @@ public:
 	bool GetEnabled();
 	void SetEnabled(bool enabled);
 
-	bool AllowsEnabledInBackground() { return false; }
-	bool GetEnabledInBackground() { return false; }
-	void SetEnabledInBackground(bool enabled) {}
-
 	void SetDefaultConfig();
 	FString GetIdentifier();
 
@@ -425,8 +421,7 @@ void FDInputJoystick::ProcessInput()
 		return;
 	}
 
-	TArray<uint8_t> statearr(DataFormat.dwDataSize, true);
-	state = statearr.data();
+	state = (uint8_t *)alloca(DataFormat.dwDataSize);
 	hr = Device->GetDeviceState(DataFormat.dwDataSize, state);
 	if (FAILED(hr))
 		return;

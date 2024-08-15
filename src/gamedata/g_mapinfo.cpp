@@ -250,7 +250,6 @@ void level_info_t::Reset()
 	else
 		flags2 = LEVEL2_LAXMONSTERACTIVATION;
 	flags3 = 0;
-	LightningSound = "world/thunder";
 	Music = "";
 	LevelName = "";
 	AuthorName = "";
@@ -323,7 +322,7 @@ FString level_info_t::LookupLevelName(uint32_t *langtable)
 	if (flags & LEVEL_LOOKUPLEVELNAME)
 	{
 		const char *thename;
-		const char *lookedup = GStrings.CheckString(LevelName.GetChars(), langtable);
+		const char *lookedup = GStrings.GetString(LevelName.GetChars(), langtable);
 		if (lookedup == NULL)
 		{
 			thename = LevelName.GetChars();
@@ -996,13 +995,6 @@ DEFINE_MAP_OPTION(next, true)
 {
 	parse.ParseAssign();
 	parse.ParseNextMap(info->NextMap);
-}
-
-DEFINE_MAP_OPTION(lightningsound, true)
-{
-	parse.ParseAssign();
-	parse.sc.MustGetString();
-	info->LightningSound = parse.sc.String;
 }
 
 DEFINE_MAP_OPTION(author, true)
@@ -1819,7 +1811,6 @@ MapFlagHandlers[] =
 	{ "disableskyboxao",				MITYPE_CLRFLAG3,	LEVEL3_SKYBOXAO, 0 },
 	{ "avoidmelee",						MITYPE_SETFLAG3,	LEVEL3_AVOIDMELEE, 0 },
 	{ "attenuatelights",				MITYPE_SETFLAG3,	LEVEL3_ATTENUATE, 0 },
-	{ "nofogofwar",					MITYPE_SETFLAG3,	LEVEL3_NOFOGOFWAR, 0 },
 	{ "nobotnodes",						MITYPE_IGNORE,	0, 0 },		// Skulltag option: nobotnodes
 	{ "nopassover",						MITYPE_COMPATFLAG, COMPATF_NO_PASSMOBJ, 0 },
 	{ "passover",						MITYPE_CLRCOMPATFLAG, COMPATF_NO_PASSMOBJ, 0 },
@@ -1868,7 +1859,6 @@ MapFlagHandlers[] =
 	{ "compat_stayonlift",				MITYPE_COMPATFLAG, 0, COMPATF2_STAYONLIFT },
 	{ "compat_nombf21",					MITYPE_COMPATFLAG, 0, COMPATF2_NOMBF21 },
 	{ "compat_voodoozombies",			MITYPE_COMPATFLAG, 0, COMPATF2_VOODOO_ZOMBIES },
-	{ "compat_noacsargcheck",			MITYPE_COMPATFLAG, 0, COMPATF2_NOACSARGCHECK },
 	{ "cd_start_track",					MITYPE_EATNEXT,	0, 0 },
 	{ "cd_end1_track",					MITYPE_EATNEXT,	0, 0 },
 	{ "cd_end2_track",					MITYPE_EATNEXT,	0, 0 },

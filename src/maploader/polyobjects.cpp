@@ -148,22 +148,7 @@ static int posicmp(const void *a, const void *b)
 	return (*(const side_t **)a)->linedef->args[1] - (*(const side_t **)b)->linedef->args[1];
 }
 
-int SetPolyobjDamage(int type, int damage)
-{
-	int dam;
-	if (type != SMT_PolySpawn)
-	{
-		if (damage == 1)
-			dam = 3;
-		else if (damage > 1)
-			dam = TELEFRAG_DAMAGE;
-		else if (damage < 0)
-			dam = abs(damage);
-	}
-	return (type != SMT_PolySpawn) ? dam : 0;
-}
-
-void MapLoader::SpawnPolyobj (int index, int tag, int type, int damage)
+void MapLoader::SpawnPolyobj (int index, int tag, int type)
 {
 	unsigned int ii;
 	int i;
@@ -196,9 +181,8 @@ void MapLoader::SpawnPolyobj (int index, int tag, int type, int damage)
 				sd->linedef->args[0] = 0;
 				IterFindPolySides(&Level->Polyobjects[index], sd);
 				po->MirrorNum = sd->linedef->args[1];
-				po->crush = SetPolyobjDamage(type,damage);
+				po->crush = (type != SMT_PolySpawn) ? 3 : 0;
 				po->bHurtOnTouch = (type == SMT_PolySpawnHurt);
-
 				po->tag = tag;
 				po->seqType = sd->linedef->args[2];
 				if (po->seqType < 0 || po->seqType > (MAX_SNDSEQS - 1))
@@ -238,7 +222,7 @@ void MapLoader::SpawnPolyobj (int index, int tag, int type, int damage)
 		qsort(&po->Sidedefs[0], po->Sidedefs.Size(), sizeof(po->Sidedefs[0]), posicmp);
 		if (po->Sidedefs.Size() > 0)
 		{
-			po->crush = SetPolyobjDamage(type,damage);
+			po->crush = (type != SMT_PolySpawn) ? 3 : 0;
 			po->bHurtOnTouch = (type == SMT_PolySpawnHurt);
 			po->tag = tag;
 			po->seqType = po->Sidedefs[0]->linedef->args[3];
@@ -375,13 +359,13 @@ void MapLoader::PO_Init (void)
 	// Find the startSpot points, and spawn each polyobj
 	for (int i=polythings.Size()-1; i >= 0; i--)
 	{
-		// 9301 (3001) = no crush, 9302 (3002) = crushing, 9303 = hurting touch, Health = crusher/hurter damage
+		// 9301 (3001) = no crush, 9302 (3002) = crushing, 9303 = hurting touch
 		int type = polythings[i]->info->Special;
 		if (type >= SMT_PolySpawn && type <= SMT_PolySpawnHurt)
 		{ 
 			// Polyobj StartSpot Pt.
 			Level->Polyobjects[polyIndex].StartSpot.pos = polythings[i]->pos.XY();
-			SpawnPolyobj(polyIndex, polythings[i]->angle, type, polythings[i]->Health);
+			SpawnPolyobj(polyIndex, polythings[i]->angle, type);
 			polyIndex++;
 		} 
 	}

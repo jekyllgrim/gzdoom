@@ -291,8 +291,6 @@ extend class Actor
 	{
 		Inventory drop = item.CreateTossable(amt);
 		if (drop == null) return NULL;
-		drop.ClearLocalPickUps();
-		drop.bNeverLocal = true;
 		drop.SetOrigin(Pos + (0, 0, 10.), false);
 		drop.Angle = Angle;
 		drop.VelFromAngle(5.);

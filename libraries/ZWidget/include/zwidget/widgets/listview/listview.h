@@ -14,20 +14,18 @@ public:
 
 	void AddItem(const std::string& text);
 	int GetSelectedItem() const { return selectedItem; }
-	void SetSelectedItem(int index);
 	void ScrollToItem(int index);
 
 	void Activate();
 
-	std::function<void(int)> OnChanged;
 	std::function<void()> OnActivated;
 
 protected:
 	void OnPaint(Canvas* canvas) override;
 	void OnPaintFrame(Canvas* canvas) override;
-	bool OnMouseDown(const Point& pos, int key) override;
-	bool OnMouseDoubleclick(const Point& pos, int key) override;
-	bool OnMouseWheel(const Point& pos, EInputKey key) override;
+	void OnMouseDown(const Point& pos, int key) override;
+	void OnMouseDoubleclick(const Point& pos, int key) override;
+	void OnMouseWheel(const Point& pos, EInputKey key) override;
 	void OnKeyDown(EInputKey key) override;
 	void OnGeometryChanged() override;
 	void OnScrollbarScroll();

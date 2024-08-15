@@ -12,9 +12,6 @@ xx(BloodSplatter)
 xx(AxeBlood)
 xx(Spray)
 
-// Actor properties
-xx(BobPivot3D)
-
 // Invulnerability types
 xx(Ghost)
 xx(Reflective)
@@ -462,7 +459,6 @@ xx(WBobSpeed)
 xx(WBobFire)
 xx(PlayerClass)
 xx(MonsterClass)
-xx(Morph)
 xx(MorphedMonster)
 xx(Wi_NoAutostartMap)
 
@@ -676,7 +672,6 @@ xx(ZDoomTranslated)
 xx(Vavoom)
 xx(GZDoom)
 xx(Eternity)
-xx(Dsda)
 
 xx(Xpanningfloor)
 xx(Ypanningfloor)
@@ -854,17 +849,14 @@ xx(Sky)
 xx(Pagename)
 
 // Lightmap/ZDRay keywords
-xx(lm_sampledist)
+xx(lm_sampledist_line)
 xx(lm_sampledist_top)
 xx(lm_sampledist_mid)
 xx(lm_sampledist_bot)
 xx(lm_sampledist_floor)
 xx(lm_sampledist_ceiling)
-xx(lm_dynamic)
 xx(lm_suncolor)
-
-// Light keywords
-xx(SoftShadowRadius)
+xx(lm_sampledistance)
 
 xx(skew_bottom_type)
 xx(skew_middle_type)

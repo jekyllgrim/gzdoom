@@ -45,14 +45,13 @@ class FTeam
 {
 public:
 	FTeam ();
-	static void ParseTeamInfo ();
-	static bool IsValid (unsigned int uiTeam);
-	static bool ChangeTeam(unsigned int pNum, unsigned int newTeam);
+	void ParseTeamInfo ();
+	bool IsValidTeam (unsigned int uiTeam);
 
 	const char *GetName () const;
 	int GetPlayerColor () const;
 	int GetTextColor () const;
-	const FString& GetLogo () const;
+	FString GetLogo () const;
 	bool GetAllowCustomPlayerColor () const;
 
 	int			m_iPlayerCount;
@@ -61,8 +60,8 @@ public:
 	int			m_iTies;
 
 private:
-	static void ParseTeamDefinition (FScanner &Scan);
-	static void ClearTeams ();
+	void ParseTeamDefinition (FScanner &Scan);
+	void ClearTeams ();
 
 public:	// needed for script access.
 	FString		m_Name;
@@ -73,6 +72,7 @@ private:
 	bool		m_bAllowCustomPlayerColor;
 };
 
+extern FTeam			TeamLibrary;
 extern TArray<FTeam>	Teams;
 
 #endif

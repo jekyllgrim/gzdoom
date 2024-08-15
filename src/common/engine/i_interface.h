@@ -31,6 +31,7 @@ struct SystemCallbacks
 	FString(*GetPlayerName)(int i);
 	bool (*DispatchEvent)(event_t* ev);
 	bool (*CheckGame)(const char* nm);
+	int (*GetGender)();
 	void (*MenuClosed)();
 	bool (*CheckMenudefOption)(const char* opt);
 	void (*ConsoleToggled)(int state);

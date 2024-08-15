@@ -69,20 +69,13 @@ if( WIN32 )
 		setupapi
 		oleaut32
 		dbghelp
-		dxguid
-		dwmapi
-	)
-
-	if( NOT MINGW )
-		list( APPEND PROJECT_LIBRARIES legacy_stdio_definitions )
-	endif()
+		legacy_stdio_definitions )
 
 	if( DEM_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 		if( DX_dxguid_LIBRARY )
 			list( APPEND PROJECT_LIBRARIES "${DX_dxguid_LIBRARY}" )
 		endif()
 	endif()
-	
 else()
 	if( APPLE )
 		set( NO_GTK ON )
@@ -332,7 +325,6 @@ if (HAVE_VULKAN)
 endif()
 
 list( APPEND PROJECT_LIBRARIES "zwidget" )
-list( APPEND PROJECT_LIBRARIES "webp" )
 
 # ZMUSIC
 
@@ -388,6 +380,13 @@ if( VPX_FOUND )
 	set( PROJECT_LIBRARIES ${PROJECT_LIBRARIES} ${VPX_LIBRARIES} )
 else()
 	message( SEND_ERROR "Could not find libvpx" )
+endif()
+
+if (TARGET WebP::webp)
+	list( APPEND PROJECT_LIBRARIES WebP::webp WebP::webpdemux WebP::libwebpmux )
+	if (TARGET WebP::webpdecoder)
+		list( APPEND PROJECT_LIBRARIES WebP::webpdecoder)
+	endif()
 endif()
 
 include_directories( SYSTEM "${BZIP2_INCLUDE_DIR}" "${LZMA_INCLUDE_DIR}" "${ZMUSIC_INCLUDE_DIR}" "${DRPC_INCLUDE_DIR}")
@@ -618,7 +617,6 @@ file( GLOB HEADER_FILES
 	common/scripting/frontend/*.h
 
 	utility/*.h
-	launcher/*.h
 	scripting/*.h
 	scripting/backend/*.h
 	scripting/decorate/*.h
@@ -978,12 +976,6 @@ set (PCH_SOURCES
 	rendering/swrenderer/textures/warptexture.cpp
 	rendering/swrenderer/textures/swcanvastexture.cpp
 	events.cpp
-	launcher/launcherwindow.cpp
-	launcher/launcherbanner.cpp
-	launcher/launcherbuttonbar.cpp
-	launcher/playgamepage.cpp
-	launcher/settingspage.cpp
-
 	common/audio/sound/i_sound.cpp
 	common/audio/sound/oalsound.cpp
 	common/audio/sound/s_environment.cpp
@@ -1007,6 +999,7 @@ set (PCH_SOURCES
 	common/startscreen/startscreen_strife.cpp
 	common/startscreen/startscreen_generic.cpp
 	common/startscreen/endoom.cpp
+	common/widgets/launcherwindow.cpp
 	common/widgets/errorwindow.cpp
 	common/widgets/netstartwindow.cpp
 	common/widgets/widgetresourcedata.cpp
@@ -1336,10 +1329,8 @@ include_directories(
 	scripting
 	scripting/zscript
 	rendering
-	launcher
 	../libraries/ZVulkan/include
 	../libraries/ZWidget/include
-	../libraries/webp/include
 	${SYSTEM_SOURCES_DIR}
 )
 
@@ -1388,7 +1379,7 @@ if( NOT WIN32 AND NOT APPLE )
 	IF ("${INSTALL_RPATH}" STREQUAL "")
 		set_target_properties(zdoom PROPERTIES
 			#allow libzmusic.so.1 library in same folder as executable at runtime
-			INSTALL_RPATH "\$ORIGIN:\$ORIGIN/zmusic/build/source"
+			INSTALL_RPATH "\$ORIGIN"
 			BUILD_WITH_INSTALL_RPATH ON
 		)
 	endif()
@@ -1543,7 +1534,6 @@ source_group("Utility\\Smackerdec" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_D
 source_group("Utility\\Smackerdec\\Headers" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/libsmackerdec/include/.+")
 source_group("Utility\\Smackerdec\\Sources" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/libsmackerdec/src/.+")
 source_group("Statusbar" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/g_statusbar/.+")
-source_group("Launcher" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/launcher/.+")
 source_group("Versioning" FILES version.h win32/zdoom.rc)
 source_group("Xlat" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/xlat/.+" FILES ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.c ${CMAKE_CURRENT_BINARY_DIR}/xlat_parser.h)
 source_group("Source Files" FILES ${CMAKE_CURRENT_BINARY_DIR}/sc_man_scanner.h common/engine/sc_man_scanner.re)

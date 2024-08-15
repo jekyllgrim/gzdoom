@@ -2635,7 +2635,7 @@ DEFINE_ACTION_FUNCTION(_Console, MidPrint)
 	PARAM_STRING(text);
 	PARAM_BOOL(bold);
 
-	const char* txt = text[0] == '$' ? GStrings.GetString(&text[1]) : text.GetChars();
+	const char* txt = text[0] == '$' ? GStrings(&text[1]) : text.GetChars();
 	C_MidPrint(fnt, txt, bold);
 	return 0;
 }
@@ -2764,7 +2764,6 @@ DEFINE_FIELD_X(LevelInfo, level_info_t, flags)
 DEFINE_FIELD_X(LevelInfo, level_info_t, flags2)
 DEFINE_FIELD_X(LevelInfo, level_info_t, flags3)
 DEFINE_FIELD_X(LevelInfo, level_info_t, Music)
-DEFINE_FIELD_X(LevelInfo, level_info_t, LightningSound)
 DEFINE_FIELD_X(LevelInfo, level_info_t, LevelName)
 DEFINE_FIELD_X(LevelInfo, level_info_t, AuthorName)
 DEFINE_FIELD_X(LevelInfo, level_info_t, musicorder)
@@ -2808,7 +2807,6 @@ DEFINE_FIELD(FLevelLocals, NextSecretMap)
 DEFINE_FIELD(FLevelLocals, F1Pic)
 DEFINE_FIELD(FLevelLocals, AuthorName)
 DEFINE_FIELD(FLevelLocals, maptype)
-DEFINE_FIELD(FLevelLocals, LightningSound)
 DEFINE_FIELD(FLevelLocals, Music)
 DEFINE_FIELD(FLevelLocals, musicorder)
 DEFINE_FIELD(FLevelLocals, skytexture1)

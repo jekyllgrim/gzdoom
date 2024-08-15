@@ -1,4 +1,4 @@
-#include <algorithm>
+
 #include "widgets/lineedit/lineedit.h"
 #include "core/utf8reader.h"
 #include "core/colorf.h"
@@ -123,11 +123,11 @@ void LineEdit::SetReadOnly(bool enable)
 	}
 }
 
-void LineEdit::SetAlignment(Alignment newalignment)
+void LineEdit::SetAlignment(Alignment alignment)
 {
-	if (alignment != newalignment)
+	if (alignment != alignment)
 	{
-		alignment = newalignment;
+		alignment = alignment;
 		Update();
 	}
 }
@@ -301,7 +301,7 @@ void LineEdit::OnMouseMove(const Point& pos)
 	}
 }
 
-bool LineEdit::OnMouseDown(const Point& pos, int key)
+void LineEdit::OnMouseDown(const Point& pos, int key)
 {
 	if (key == IK_LeftMouse)
 	{
@@ -318,15 +318,13 @@ bool LineEdit::OnMouseDown(const Point& pos, int key)
 		}
 		Update();
 	}
-	return true;
 }
 
-bool LineEdit::OnMouseDoubleclick(const Point& pos, int key)
+void LineEdit::OnMouseDoubleclick(const Point& pos, int key)
 {
-	return true;
 }
 
-bool LineEdit::OnMouseUp(const Point& pos, int key)
+void LineEdit::OnMouseUp(const Point& pos, int key)
 {
 	if (mouse_selecting && key == IK_LeftMouse)
 	{
@@ -348,7 +346,6 @@ bool LineEdit::OnMouseUp(const Point& pos, int key)
 			Update();
 		}
 	}
-	return true;
 }
 
 void LineEdit::OnKeyChar(std::string chars)

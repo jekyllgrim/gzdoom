@@ -33,7 +33,6 @@ class Key : Inventory
 	Default
 	{
 		+DONTGIB;		// Don't disappear due to a crusher
-		+INVENTORY.ISKEYITEM;
 		Inventory.InterHubAmount 0;
 		Inventory.PickupSound "misc/k_pkup";
 	}
@@ -43,11 +42,6 @@ class Key : Inventory
 	static native clearscope Color GetMapColorForKey(Key key);
 	static native clearscope int GetKeyTypeCount();
 	static native clearscope class<Key> GetKeyType(int index);
-
-	override bool ShouldShareItem(Actor giver)
-	{
-		return sv_coopsharekeys;
-	}
 	
 	override bool HandlePickup (Inventory item)
 	{
@@ -63,6 +57,28 @@ class Key : Inventory
 			return true;
 		}
 		return false;
+	}
+
+	override void AttachToOwner(Actor other)
+	{
+		Super.AttachToOwner(other);
+
+		if (multiplayer && !deathmatch && sv_coopsharekeys)
+		{
+			for (int i = 0; i < MAXPLAYERS; i++)
+			{
+				if (playeringame[i])
+				{
+					let pmo = players[i].mo;
+
+					if (pmo == other)
+						continue;
+
+					if (!pmo.FindInventory(GetClass()))
+						pmo.GiveInventoryType(GetClass());
+				}
+			}
+		}
 	}
 
 	override bool ShouldStay ()
@@ -111,17 +127,11 @@ class PuzzleItem : Inventory
 	{
 		+NOGRAVITY
 		+INVENTORY.INVBAR
-		+INVENTORY.ISKEYITEM
 		Inventory.DefMaxAmount;
 		Inventory.UseSound "PuzzleSuccess";
 		Inventory.PickupSound "misc/i_pkup";
 		PuzzleItem.FailMessage("$TXT_USEPUZZLEFAILED");
 		PuzzleItem.FailSound "*puzzfail";
-	}
-
-	override bool ShouldShareItem(Actor giver)
-	{
-		return sv_coopsharekeys;
 	}
 	
 	override bool HandlePickup (Inventory item)

@@ -137,9 +137,6 @@ extend class Object
 	native static void MarkSound(Sound snd);
 	native static uint BAM(double angle);
 	native static void SetMusicVolume(float vol);
-	native clearscope static Object GetNetworkEntity(uint id);
-	native play void EnableNetworking(bool enable);
-	native clearscope uint GetNetworkID() const;
 }
 
 class Thinker : Object native play
@@ -340,7 +337,6 @@ struct LevelInfo native
 	native readonly int flags;
 	native readonly int flags2;
 	native readonly int flags3;
-	native readonly String LightningSound;
 	native readonly String Music;
 	native readonly String LevelName;
 	native readonly String AuthorName;
@@ -414,7 +410,7 @@ struct LevelLocals native
 	native Array<@Side> Sides;
 	native readonly Array<@Vertex> Vertexes;
 	native readonly Array<@LinePortal> LinePortals;
-	native internal readonly Array<@SectorPortal> SectorPortals;
+	native internal Array<@SectorPortal> SectorPortals;
 	
 	native readonly int time;
 	native readonly int maptime;
@@ -432,7 +428,6 @@ struct LevelLocals native
 	native readonly String F1Pic;
 	native readonly int maptype;
 	native readonly String AuthorName;
-	native String LightningSound;
 	native readonly String Music;
 	native readonly int musicorder;
 	native readonly TextureID skytexture1;
@@ -529,7 +524,6 @@ struct LevelLocals native
 	native String GetChecksum() const;
 
 	native void ChangeSky(TextureID sky1, TextureID sky2 );
-	native void ForceLightning(int mode = 0, sound tempSound = "");
 
 	native SectorTagIterator CreateSectorTagIterator(int tag, line defline = null);
 	native LineIdIterator CreateLineIdIterator(int tag);
@@ -586,10 +580,10 @@ struct State native
 	native readonly bool bCanRaise;
 	native readonly bool bDehacked;
 	
-	native int DistanceTo(state other) const;
-	native bool ValidateSpriteFrame() const;
-	native TextureID, bool, Vector2 GetSpriteTexture(int rotation, int skin = 0, Vector2 scale = (0,0), int spritenum = -1, int framenum = -1) const;
-	native bool InStateSequence(State base) const;
+	native int DistanceTo(state other);
+	native bool ValidateSpriteFrame();
+	native TextureID, bool, Vector2 GetSpriteTexture(int rotation, int skin = 0, Vector2 scale = (0,0), int spritenum = -1, int framenum = -1);
+	native bool InStateSequence(State base);
 }
 
 struct TerrainDef native

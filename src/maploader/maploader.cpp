@@ -1169,6 +1169,7 @@ bool MapLoader::LoadNodes (MapData * map)
 	int 		k;
 	nodetype	*mn;
 	node_t* 	no;
+	uint16_t*		used;
 	int			lumplen = map->Size(ML_NODES);
 	int			maxss = map->Size(ML_SSECTORS) / sizeof(subsectortype);
 
@@ -1181,8 +1182,8 @@ bool MapLoader::LoadNodes (MapData * map)
 	
 	auto &nodes = Level->nodes;
 	nodes.Alloc(numnodes);		
-	TArray<uint16_t> used(numnodes, true);
-	memset (used.data(), 0, sizeof(uint16_t) * numnodes);
+	used = (uint16_t *)alloca (sizeof(uint16_t)*numnodes);
+	memset (used, 0, sizeof(uint16_t)*numnodes);
 
 	auto mnp = map->Read(ML_NODES);
 	mn = (nodetype*)(mnp.Data() + nodetype::NF_LUMPOFFSET);
@@ -3262,25 +3263,6 @@ void MapLoader::LoadLevel(MapData *map, const char *lumpname, int position)
 
 	Level->aabbTree = new DoomLevelAABBTree(Level);
 	Level->levelMesh = new DoomLevelMesh(*Level);
-
-	// [DVR] Populate subsector->bbox for alternative space culling in orthographic projection with no fog of war
-	subsector_t* sub = &Level->subsectors[0];
-	seg_t* seg;
-	for (unsigned int kk = 0; kk < Level->subsectors.Size(); kk++)
-	{
-		sub[kk].bbox.ClearBox();
-		unsigned int count = sub[kk].numlines;
-		seg = sub[kk].firstline;
-		while(count--)
-		{
-			if((seg->v1 != nullptr) && (seg->v2 != nullptr))
-			{
-				sub[kk].bbox.AddToBox(seg->v1->fPos());
-				sub[kk].bbox.AddToBox(seg->v2->fPos());
-			}
-			seg++;
-		}
-	}
 }
 
 //==========================================================================

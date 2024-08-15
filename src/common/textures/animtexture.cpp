@@ -35,8 +35,6 @@
 #include "bitmap.h"
 #include "texturemanager.h"
 
-#include "vpx/vpx_image.h"
-
 
 //==========================================================================
 //
@@ -48,152 +46,39 @@ void AnimTexture::SetFrameSize(int  format, int width, int height)
 {
 	pixelformat = format;
 	FTexture::SetSize(width, height);
-	Image.Resize(width * height * 4);
+	Image.Resize(width * height * (format == Paletted ? 1 : 3));
 	memset(Image.Data(), 0, Image.Size());
 }
 
-//TODO optimize
-static inline void YUVtoRGB(uint8_t yi, uint8_t ui, uint8_t vi, uint8_t * rgb)
+void AnimTexture::SetFrame(const uint8_t* palette, const void* data_)
 {
-	float Y = yi * (1 / 255.f);
-	float U = ui * (1 / 255.f) - 0.5f;
-	float V = vi * (1 / 255.f) - 0.5f;
-	Y = 1.1643f * (Y - 0.0625f);
-	float r = Y + 1.5958f * V;
-	float g = Y - 0.39173f * U - 0.81290f * V;
-	float b = Y + 2.017f * U;
-	(rgb)[2] = (uint8_t)(clamp(r, 0.f, 1.f) * 255);
-	(rgb)[1] = (uint8_t)(clamp(g, 0.f, 1.f) * 255);
-	(rgb)[0] = (uint8_t)(clamp(b, 0.f, 1.f) * 255);
-	(rgb)[3] = 255;
-}
-
-void AnimTexture::SetFrame(const uint8_t* Palette, const void* data_)
-{
+	if (palette) memcpy(Palette, palette, 768);
 	if (data_)
 	{
-		auto dpix = Image.Data();
-
 		if (pixelformat == YUV)
 		{
-			const uint8_t * spix = reinterpret_cast<const uint8_t *>(data_);
-
+			auto spix = (const uint8_t*)data_;
+			auto dpix = Image.Data();
 			for (int i = 0; i < Width * Height; i++)
-			{
-				YUVtoRGB(spix[0], spix[1], spix[2], dpix);
+			 {
+				int p = i * 4;
+				int q = i * 3;
+				float y = spix[p] * (1 / 255.f);
+				float u = spix[p + 1] * (1 / 255.f) - 0.5f;
+				float v = spix[p + 2] * (1 / 255.f) - 0.5f;
 
-				spix += 4;
-				dpix += 4;
+				y = 1.1643f * (y - 0.0625f);
+
+				float r = y + 1.5958f * v;
+				float g = y - 0.39173f * u - 0.81290f * v;
+				float b = y + 2.017f * u;
+
+				dpix[q + 0] = (uint8_t)(clamp(r, 0.f, 1.f) * 255);
+				dpix[q + 1] = (uint8_t)(clamp(g, 0.f, 1.f) * 255);
+				dpix[q + 2] = (uint8_t)(clamp(b, 0.f, 1.f) * 255);
 			}
 		}
-		else if(pixelformat == VPX)
-		{
-			const vpx_image_t *img = reinterpret_cast<const vpx_image_t *>(data_);
-			
-			uint8_t const* const yplane = img->planes[VPX_PLANE_Y];
-			uint8_t const* const uplane = img->planes[VPX_PLANE_U];
-			uint8_t const* const vplane = img->planes[VPX_PLANE_V];
-
-			const int ystride = img->stride[VPX_PLANE_Y];
-			const int ustride = img->stride[VPX_PLANE_U];
-			const int vstride = img->stride[VPX_PLANE_V];
-
-			if(img->fmt == VPX_IMG_FMT_I420)
-			{
-				for (unsigned int y = 0; y < Height; y++)
-				{
-					for (unsigned int x = 0; x < Width; x++)
-					{
-						YUVtoRGB(
-								yplane[ystride * y + x],
-								uplane[ustride * (y >> 1) + (x >> 1)],
-								vplane[vstride * (y >> 1) + (x >> 1)],
-								dpix
-						);
-
-						dpix += 4;
-					}
-				}
-			}
-			else if(img->fmt == VPX_IMG_FMT_I444)
-			{
-				for (unsigned int y = 0; y < Height; y++)
-				{
-					for (unsigned int x = 0; x < Width; x++)
-					{
-						YUVtoRGB(
-							yplane[ystride * y + x],
-							uplane[ustride * y + x],
-							vplane[vstride * y + x],
-							dpix
-						);
-						dpix += 4;
-					}
-				}
-			}
-			else if(img->fmt == VPX_IMG_FMT_I422)
-			{ // 422 and 440 untested
-				for (unsigned int y = 0; y < Height; y++)
-				{
-					for (unsigned int x = 0; x < Width; x++)
-					{
-						YUVtoRGB(
-							yplane[ystride * y + x],
-							uplane[ustride * y + (x >> 1)],
-							vplane[vstride * y + (x >> 1)],
-							dpix
-						);
-						dpix += 4;
-					}
-				}
-			}
-			else if(img->fmt == VPX_IMG_FMT_I440)
-			{
-				for (unsigned int y = 0; y < Height; y++)
-				{
-					for (unsigned int x = 0; x < Width; x++)
-					{
-						YUVtoRGB(
-							yplane[ystride * y + x],
-							uplane[ustride * (y >> 1) + x],
-							vplane[vstride * (y >> 1) + x],
-							dpix
-						);
-						dpix += 4;
-					}
-				}
-			}
-		}
-		else if(pixelformat == RGB)
-		{
-			const uint8_t *img = reinterpret_cast<const uint8_t *>(data_);
-
-			for (int i = 0; i < Width * Height; i++)
-			{
-				dpix[0] = img[2];
-				dpix[1] = img[1];
-				dpix[2] = img[0];
-				dpix[3] = 255;
-
-				dpix += 4;
-			}
-		}
-		else if (pixelformat == Paletted)
-		{
-			assert(Palette);
-			const uint8_t *img = reinterpret_cast<const uint8_t *>(data_);
-
-			for (int i = 0; i < Width * Height; i++)
-			{
-				int index = img[i];
-				dpix[0] = Palette[index * 3 + 2];
-				dpix[1] = Palette[index * 3 + 1];
-				dpix[2] = Palette[index * 3];
-				dpix[3] = 255;
-
-				dpix += 4;
-			}
-		}
+		else memcpy(Image.Data(), data_, Width * Height * (pixelformat == Paletted ? 1 : 3));
 	}
 }
 
@@ -205,7 +90,37 @@ void AnimTexture::SetFrame(const uint8_t* Palette, const void* data_)
 
 FBitmap AnimTexture::GetBgraBitmap(const PalEntry* remap, int* trans)
 {
-	return FBitmap(Image.Data(), Width * 4, Width, Height);
+	FBitmap bmp;
+
+	bmp.Create(Width, Height);
+
+	auto spix = Image.Data();
+	auto dpix = bmp.GetPixels();
+	if (pixelformat == Paletted)
+	{
+		for (int i = 0; i < Width * Height; i++)
+		{
+			int p = i * 4;
+			int index = spix[i];
+			dpix[p + 0] = Palette[index * 3 + 2];
+			dpix[p + 1] = Palette[index * 3 + 1];
+			dpix[p + 2] = Palette[index * 3];
+			dpix[p + 3] = 255;
+		}
+	}
+	else if (pixelformat == RGB || pixelformat == YUV)
+	{
+		for (int i = 0; i < Width * Height; i++)
+		{
+			int p = i * 4;
+			int q = i * 3;
+			dpix[p + 0] = spix[q + 2];
+			dpix[p + 1] = spix[q + 1];
+			dpix[p + 2] = spix[q];
+			dpix[p + 3] = 255;
+		}
+	}
+	return bmp;
 }
 
 //==========================================================================

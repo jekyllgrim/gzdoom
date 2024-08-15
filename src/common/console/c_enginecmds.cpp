@@ -80,7 +80,7 @@ CCMD (print)
 		Printf ("print <name>: Print a string from the string table\n");
 		return;
 	}
-	const char *str = GStrings.CheckString(argv[1]);
+	const char *str = GStrings[argv[1]];
 	if (str == NULL)
 	{
 		Printf ("%s unknown\n", argv[1]);
@@ -244,7 +244,7 @@ CCMD (wdir)
 	{
 		if (wadnum == -1 || fileSystem.GetFileContainer(i) == wadnum)
 		{
-			Printf ("%10ld %s\n", fileSystem.FileLength(i), fileSystem.GetFileFullName(i));
+			Printf ("%10d %s\n", fileSystem.FileLength(i), fileSystem.GetFileFullName(i));
 		}
 	}
 }
@@ -304,7 +304,7 @@ CCMD(printlocalized)
 				return;
 			}
 		}
-		Printf("%s\n", GStrings.GetString(argv[1]));
+		Printf("%s\n", GStrings(argv[1]));
 	}
 
 }

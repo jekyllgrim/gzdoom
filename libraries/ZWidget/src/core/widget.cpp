@@ -172,11 +172,6 @@ void Widget::Show()
 	{
 		DispWindow->Show();
 	}
-	else if (HiddenFlag)
-	{
-		HiddenFlag = false;
-		Update();
-	}
 }
 
 void Widget::ShowFullscreen()
@@ -217,11 +212,6 @@ void Widget::Hide()
 	{
 		if (DispWindow)
 			DispWindow->Hide();
-	}
-	else if (!HiddenFlag)
-	{
-		HiddenFlag = true;
-		Update();
 	}
 }
 
@@ -309,7 +299,7 @@ void Widget::Paint(Canvas* canvas)
 	OnPaint(canvas);
 	for (Widget* w = FirstChild(); w != nullptr; w = w->NextSibling())
 	{
-		if (w->Type == WidgetType::Child && !w->HiddenFlag)
+		if (w->Type == WidgetType::Child)
 			w->Paint(canvas);
 	}
 	canvas->setOrigin(oldOrigin);
@@ -333,21 +323,9 @@ bool Widget::IsEnabled()
 	return true;
 }
 
-bool Widget::IsHidden()
-{
-	return !IsVisible();
-}
-
 bool Widget::IsVisible()
 {
-	if (Type != WidgetType::Child)
-	{
-		return true; // DispWindow->IsVisible();
-	}
-	else
-	{
-		return !HiddenFlag;
-	}
+	return true;
 }
 
 void Widget::SetFocus()
@@ -449,9 +427,9 @@ Widget* Widget::Window()
 	return nullptr;
 }
 
-Canvas* Widget::GetCanvas() const
+Canvas* Widget::GetCanvas()
 {
-	for (const Widget* w = this; w != nullptr; w = w->Parent())
+	for (Widget* w = this; w != nullptr; w = w->Parent())
 	{
 		if (w->DispCanvas)
 			return w->DispCanvas.get();
@@ -463,7 +441,7 @@ Widget* Widget::ChildAt(const Point& pos)
 {
 	for (Widget* cur = LastChild(); cur != nullptr; cur = cur->PrevSibling())
 	{
-		if (!cur->HiddenFlag && cur->FrameGeometry.contains(pos))
+		if (cur->FrameGeometry.contains(pos))
 		{
 			Widget* cur2 = cur->ChildAt(pos - cur->ContentGeometry.topLeft());
 			return cur2 ? cur2 : cur;
@@ -545,28 +523,12 @@ void Widget::OnWindowMouseMove(const Point& pos)
 		if (HoverWidget != widget)
 		{
 			if (HoverWidget)
-			{
-				for (Widget* w = HoverWidget; w != widget && w != this; w = w->Parent())
-				{
-					Widget* p = w->Parent();
-					if (!w->FrameGeometry.contains(p->MapFrom(this, pos)))
-					{
-						w->OnMouseLeave();
-					}
-				}
-			}
+				HoverWidget->OnMouseLeave();
 			HoverWidget = widget;
 		}
 
 		DispWindow->SetCursor(widget->CurrentCursor);
-
-		do
-		{
-			widget->OnMouseMove(widget->MapFrom(this, pos));
-			if (widget == this)
-				break;
-			widget = widget->Parent();
-		} while (widget);
+		widget->OnMouseMove(widget->MapFrom(this, pos));
 	}
 }
 
@@ -581,13 +543,7 @@ void Widget::OnWindowMouseDown(const Point& pos, EInputKey key)
 		Widget* widget = ChildAt(pos);
 		if (!widget)
 			widget = this;
-		while (widget)
-		{
-			bool stopPropagation = widget->OnMouseDown(widget->MapFrom(this, pos), key);
-			if (stopPropagation || widget == this)
-				break;
-			widget = widget->Parent();
-		}
+		widget->OnMouseDown(widget->MapFrom(this, pos), key);
 	}
 }
 
@@ -602,13 +558,7 @@ void Widget::OnWindowMouseDoubleclick(const Point& pos, EInputKey key)
 		Widget* widget = ChildAt(pos);
 		if (!widget)
 			widget = this;
-		while (widget)
-		{
-			bool stopPropagation = widget->OnMouseDoubleclick(widget->MapFrom(this, pos), key);
-			if (stopPropagation || widget == this)
-				break;
-			widget = widget->Parent();
-		}
+		widget->OnMouseDoubleclick(widget->MapFrom(this, pos), key);
 	}
 }
 
@@ -623,13 +573,7 @@ void Widget::OnWindowMouseUp(const Point& pos, EInputKey key)
 		Widget* widget = ChildAt(pos);
 		if (!widget)
 			widget = this;
-		while (widget)
-		{
-			bool stopPropagation = widget->OnMouseUp(widget->MapFrom(this, pos), key);
-			if (stopPropagation || widget == this)
-				break;
-			widget = widget->Parent();
-		}
+		widget->OnMouseUp(widget->MapFrom(this, pos), key);
 	}
 }
 
@@ -644,13 +588,7 @@ void Widget::OnWindowMouseWheel(const Point& pos, EInputKey key)
 		Widget* widget = ChildAt(pos);
 		if (!widget)
 			widget = this;
-		while (widget)
-		{
-			bool stopPropagation = widget->OnMouseWheel(widget->MapFrom(this, pos), key);
-			if (stopPropagation || widget == this)
-				break;
-			widget = widget->Parent();
-		}
+		widget->OnMouseWheel(widget->MapFrom(this, pos), key);
 	}
 }
 

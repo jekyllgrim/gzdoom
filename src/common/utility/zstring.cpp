@@ -217,7 +217,7 @@ FString &FString::operator = (const FString &other)
 	return *this;
 }
 
-FString &FString::operator = (FString &&other) noexcept
+FString &FString::operator = (FString &&other)
 {
 	assert (Chars != NULL);
 
@@ -1089,12 +1089,6 @@ octdigits	= [0-7];
 
 ("0" octdigits+ | "0" [xX] hexdigits+ | (digits \ '0') digits*) { return true; }
 [\000-\377] { return false; }*/
-
-	//FIX for "0" returning false, doesn't fix 0 with whitespace, but that isn't necessary for savegame loading, so it'll need to be fixed later
-	if(Len() == 1 && Chars[0] == '0') return true;
-
-
-
 	const char *YYCURSOR = Chars;
 	char yych;
 

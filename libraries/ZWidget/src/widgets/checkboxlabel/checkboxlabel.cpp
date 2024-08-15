@@ -56,21 +56,19 @@ void CheckboxLabel::OnPaint(Canvas* canvas)
 	canvas->drawText(Point(14.0, GetHeight() - 5.0), Colorf::fromRgba8(255, 255, 255), text);
 }
 
-bool CheckboxLabel::OnMouseDown(const Point& pos, int key)
+void CheckboxLabel::OnMouseDown(const Point& pos, int key)
 {
 	mouseDownActive = true;
 	SetFocus();
-	return true;
 }
 
-bool CheckboxLabel::OnMouseUp(const Point& pos, int key)
+void CheckboxLabel::OnMouseUp(const Point& pos, int key)
 {
 	if (mouseDownActive)
 	{
 		Toggle();
 	}
 	mouseDownActive = false;
-	return true;
 }
 
 void CheckboxLabel::OnMouseLeave()

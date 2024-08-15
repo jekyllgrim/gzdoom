@@ -35,9 +35,8 @@
 
 bool gameisdead;
 
-#include <cstdarg>
-
 #ifdef _WIN32
+#include <cstdarg>
 #include <windows.h>
 #include "zstring.h"
 void I_DebugPrint(const char *cp)

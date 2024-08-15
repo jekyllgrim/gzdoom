@@ -35,20 +35,6 @@
 #include "fs_findfile.h"
 #include <string.h>
 #include <vector>
-#include <sys/stat.h>
-
-#ifndef _WIN32
-
-#include <limits.h>
-#include <stdlib.h>
-#ifdef __FreeBSD__
-#include <sys/time.h>
-#endif
-#include <unistd.h>
-#include <fnmatch.h>
-#include <dirent.h>
-
-#endif
 
 namespace FileSys {
 	
@@ -76,6 +62,14 @@ enum
 
 
 #ifndef _WIN32
+
+#include <limits.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fnmatch.h>
+#include <sys/stat.h>
+
+#include <dirent.h>
 
 struct findstate_t
 {

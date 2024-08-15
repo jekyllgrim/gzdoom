@@ -54,7 +54,7 @@ class PSymbolType : public PSymbol
 {
 	DECLARE_CLASS(PSymbolType, PSymbol);
 public:
-	PType *Type = nullptr;
+	PType *Type;
 
 	PSymbolType(FName name, class PType *ty) : PSymbol(name), Type(ty) {}
 	PSymbolType() : PSymbol(NAME_None) {}
@@ -66,7 +66,7 @@ class PSymbolTreeNode : public PSymbol
 {
 	DECLARE_CLASS(PSymbolTreeNode, PSymbol);
 public:
-	struct ZCC_TreeNode *Node = nullptr;
+	struct ZCC_TreeNode *Node;
 
 	PSymbolTreeNode(FName name, struct ZCC_TreeNode *node) : PSymbol(name), Node(node) {}
 	PSymbolTreeNode() : PSymbol(NAME_None) {}
@@ -147,11 +147,11 @@ public:
 		void *Pad;
 	};
 
-	PSymbolConstNumeric(FName name, PType *type=nullptr) : PSymbolConst(name, type), Float(0) {}
+	PSymbolConstNumeric(FName name, PType *type=NULL) : PSymbolConst(name, type) {}
 	PSymbolConstNumeric(FName name, PType *type, int val) : PSymbolConst(name, type), Value(val) {}
 	PSymbolConstNumeric(FName name, PType *type, unsigned int val) : PSymbolConst(name, type), Value((int)val) {}
 	PSymbolConstNumeric(FName name, PType *type, double val) : PSymbolConst(name, type), Float(val) {}
-	PSymbolConstNumeric() : Float(0) {}
+	PSymbolConstNumeric() {}
 };
 
 // A constant string value --------------------------------------------------

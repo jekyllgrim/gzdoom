@@ -101,33 +101,18 @@ static FRandom pr_skullpop ("SkullPop");
 CVAR(Bool, sv_singleplayerrespawn, false, CVAR_SERVERINFO | CVAR_CHEAT)
 
 // Variables for prediction
+CVAR (Bool, cl_noprediction, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 CVAR(Bool, cl_predict_specials, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-// Deprecated
-CVAR(Bool, cl_noprediction, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, cl_predict_lerpscale, 0.05f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, cl_predict_lerpthreshold, 2.00f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
-CUSTOM_CVAR(Float, cl_rubberband_scale, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CUSTOM_CVAR(Float, cl_predict_lerpscale, 0.05f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
-	if (self < 0.0f)
-		self = 0.0f;
-	else if (self > 1.0f)
-		self = 1.0f;
+	P_PredictionLerpReset();
 }
-CUSTOM_CVAR(Float, cl_rubberband_threshold, 20.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CUSTOM_CVAR(Float, cl_predict_lerpthreshold, 2.00f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
 	if (self < 0.1f)
 		self = 0.1f;
-}
-CUSTOM_CVAR(Float, cl_rubberband_minmove, 20.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-{
-	if (self < 0.1f)
-		self = 0.1f;
-}
-CUSTOM_CVAR(Float, cl_rubberband_limit, 756.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-{
-	if (self < 0.0f)
-		self = 0.0f;
+	P_PredictionLerpReset();
 }
 
 ColorSetList ColorSets;
@@ -140,9 +125,13 @@ CUSTOM_CVAR(Float, fov, 90.f, CVAR_ARCHIVE | CVAR_USERINFO | CVAR_NOINITCALL)
 	p->SetFOV(fov);
 }
 
-static DVector3 LastPredictedPosition;
-static int LastPredictedPortalGroup;
-static int LastPredictedTic;
+struct PredictPos
+{
+	int gametic;
+	DVector3 pos;
+	DRotator angles;
+} static PredictionLerpFrom, PredictionLerpResult, PredictionLast;
+static int PredictionLerptics;
 
 static player_t PredictionPlayerBackup;
 static AActor *PredictionActor;
@@ -160,12 +149,6 @@ static TArray<msecnode_t *> PredictionPortalSectors_sprev_Backup;
 
 static TArray<FLinePortal *> PredictionPortalLinesBackup;
 static TArray<portnode_t *> PredictionPortalLines_sprev_Backup;
-
-struct
-{
-	DVector3 Pos = {};
-	int Flags = 0;
-} static PredictionViewPosBackup;
 
 // [GRB] Custom player classes
 TArray<FPlayerClass> PlayerClasses;
@@ -358,7 +341,6 @@ void player_t::CopyFrom(player_t &p, bool copyPSP)
 	MUSINFOactor = p.MUSINFOactor;
 	MUSINFOtics = p.MUSINFOtics;
 	SoundClass = p.SoundClass;
-	angleOffsetTargets = p.angleOffsetTargets;
 	if (copyPSP)
 	{
 		// This needs to transfer ownership completely.
@@ -394,7 +376,7 @@ void player_t::SetLogNumber (int num)
 
 	// First look up TXT_LOGTEXT%d in the string table
 	mysnprintf(lumpname, countof(lumpname), "$TXT_LOGTEXT%d", num);
-	auto text = GStrings.CheckString(lumpname+1);
+	auto text = GStrings[lumpname+1];
 	if (text)
 	{
 		SetLogText(lumpname);	// set the label, not the content, so that a language change can be picked up.
@@ -412,7 +394,7 @@ void player_t::SetLogNumber (int num)
 			// If this is an original IWAD text, try looking up its lower priority string version first.
 
 			mysnprintf(lumpname, countof(lumpname), "$TXT_ILOG%d", num);
-			auto text = GStrings.CheckString(lumpname + 1);
+			auto text = GStrings[lumpname + 1];
 			if (text)
 			{
 				SetLogText(lumpname);	// set the label, not the content, so that a language change can be picked up.
@@ -440,7 +422,7 @@ void player_t::SetLogText (const char *text)
 	if (mo && mo->CheckLocalView())
 	{
 		// Print log text to console
-		Printf(PRINT_HIGH | PRINT_NONOTIFY, TEXTCOLOR_GOLD "%s\n", LogText[0] == '$' ? GStrings.GetString(text + 1) : text);
+		Printf(PRINT_HIGH | PRINT_NONOTIFY, TEXTCOLOR_GOLD "%s\n", LogText[0] == '$' ? GStrings(text + 1) : text);
 	}
 }
 
@@ -496,7 +478,7 @@ void player_t::SetFOV(float fov)
 		{
 			if (consoleplayer == Net_Arbitrator)
 			{
-				Net_WriteInt8(DEM_MYFOV);
+				Net_WriteByte(DEM_MYFOV);
 			}
 			else
 			{
@@ -506,7 +488,7 @@ void player_t::SetFOV(float fov)
 		}
 		else
 		{
-			Net_WriteInt8(DEM_MYFOV);
+			Net_WriteByte(DEM_MYFOV);
 		}
 		Net_WriteFloat(clamp<float>(fov, 5.f, 179.f));
 	}
@@ -655,9 +637,9 @@ void player_t::SendPitchLimits() const
 			uppitch = downpitch = (int)maxviewpitch;
 		}
 
-		Net_WriteInt8(DEM_SETPITCHLIMIT);
-		Net_WriteInt8(uppitch);
-		Net_WriteInt8(downpitch);
+		Net_WriteByte(DEM_SETPITCHLIMIT);
+		Net_WriteByte(uppitch);
+		Net_WriteByte(downpitch);
 	}
 }
 
@@ -711,7 +693,7 @@ bool player_t::Resurrect()
 		P_BringUpWeapon(this);
 	}
 
-	if (mo->alternative != nullptr)
+	if (morphTics)
 	{
 		P_UnmorphActor(mo, mo);
 	}
@@ -733,8 +715,7 @@ DEFINE_ACTION_FUNCTION(_PlayerInfo, Resurrect)
 DEFINE_ACTION_FUNCTION(_PlayerInfo, GetUserName)
 {
 	PARAM_SELF_STRUCT_PROLOGUE(player_t);
-	PARAM_UINT(charLimit);
-	ACTION_RETURN_STRING(self->userinfo.GetName(charLimit));
+	ACTION_RETURN_STRING(self->userinfo.GetName());
 }
 
 DEFINE_ACTION_FUNCTION(_PlayerInfo, GetNeverSwitch)
@@ -1191,7 +1172,7 @@ void P_CheckEnvironment(player_t *player)
 		P_PlayerOnSpecialFlat(player, P_GetThingFloorType(player->mo));
 	}
 	if (player->mo->Vel.Z <= -player->mo->FloatVar(NAME_FallingScreamMinSpeed) &&
-		player->mo->Vel.Z >= -player->mo->FloatVar(NAME_FallingScreamMaxSpeed) && player->mo->alternative == nullptr &&
+		player->mo->Vel.Z >= -player->mo->FloatVar(NAME_FallingScreamMaxSpeed) && !player->morphTics &&
 		player->mo->waterlevel == 0)
 	{
 		auto id = S_FindSkinnedSound(player->mo, S_FindSound("*falling"));
@@ -1258,17 +1239,6 @@ void P_PlayerThink (player_t *player)
 		I_Error ("No player %td start\n", player - players + 1);
 	}
 
-	for (unsigned int i = 0u; i < 3u; ++i)
-	{
-		if (fabs(player->angleOffsetTargets[i].Degrees()) >= EQUAL_EPSILON)
-		{
-			player->mo->Angles[i] += player->angleOffsetTargets[i];
-			player->mo->PrevAngles[i] = player->mo->Angles[i];
-		}
-
-		player->angleOffsetTargets[i] = nullAngle;
-	}
-
 	if (player->SubtitleCounter > 0)
 	{
 		player->SubtitleCounter--;
@@ -1297,7 +1267,6 @@ void P_PlayerThink (player_t *player)
 	player->cheats &= ~CF_INTERPVIEWANGLES;
 	player->cheats &= ~CF_SCALEDNOLERP;
 	player->cheats &= ~CF_NOFOVINTERP;
-	player->cheats &= ~CF_NOVIEWPOSINTERP;
 	player->mo->FloatVar("prevBob") = player->bob;
 
 	IFVIRTUALPTRNAME(player->mo, NAME_PlayerPawn, PlayerThink)
@@ -1309,25 +1278,23 @@ void P_PlayerThink (player_t *player)
 
 void P_PredictionLerpReset()
 {
-	LastPredictedPosition = DVector3{};
-	LastPredictedPortalGroup = 0;
-	LastPredictedTic = -1;
+	PredictionLerptics = PredictionLast.gametic = PredictionLerpFrom.gametic = PredictionLerpResult.gametic = 0;
 }
 
-void P_LerpCalculate(AActor* pmo, const DVector3& from, DVector3 &result, float scale, float threshold, float minMove)
+bool P_LerpCalculate(AActor *pmo, PredictPos from, PredictPos to, PredictPos &result, float scale)
 {
-	DVector3 diff = pmo->Pos() - from;
-	diff.XY() += pmo->Level->Displacements.getOffset(pmo->Sector->PortalGroup, pmo->Level->PointInSector(from.XY())->PortalGroup);
-	double dist = diff.Length();
-	if (dist <= max<float>(threshold, minMove))
-	{
-		result = pmo->Pos();
-		return;
-	}
+	DVector3 vecFrom = from.pos;
+	DVector3 vecTo = to.pos;
+	DVector3 vecResult;
+	vecResult = vecTo - vecFrom;
+	vecResult *= scale;
+	vecResult = vecResult + vecFrom;
+	DVector3 delta = vecResult - vecTo;
 
-	diff /= dist;
-	diff *= min<double>(dist * (1.0f - scale), dist - minMove);
-	result = pmo->Vec3Offset(-diff.X, -diff.Y, -diff.Z);
+	result.pos = pmo->Vec3Offset(vecResult - to.pos);
+
+	// As a fail safe, assume extrapolation is the threshold.
+	return (delta.LengthSquared() > cl_predict_lerpthreshold && scale <= 1.00f);
 }
 
 template<class nodetype, class linktype>
@@ -1428,7 +1395,8 @@ void P_PredictPlayer (player_t *player)
 {
 	int maxtic;
 
-	if (singletics ||
+	if (cl_noprediction ||
+		singletics ||
 		demoplayback ||
 		player->mo == NULL ||
 		player != player->mo->Level->GetConsolePlayer() ||
@@ -1455,16 +1423,9 @@ void P_PredictPlayer (player_t *player)
 	PredictionActorBackupArray.Resize(act->GetClass()->Size);
 	memcpy(PredictionActorBackupArray.Data(), &act->snext, act->GetClass()->Size - ((uint8_t *)&act->snext - (uint8_t *)act));
 
-	// Since this is a DObject it needs to have its fields backed up manually for restore, otherwise any changes
-	// to it will be permanent while predicting. This is now auto-created on pawns to prevent creation spam.
-	if (act->ViewPos != nullptr)
-	{
-		PredictionViewPosBackup.Pos = act->ViewPos->Offset;
-		PredictionViewPosBackup.Flags = act->ViewPos->Flags;
-	}
-
 	act->flags &= ~MF_PICKUP;
 	act->flags2 &= ~MF2_PUSHWALL;
+	act->renderflags &= ~RF_NOINTERPOLATEVIEW;
 	player->cheats |= CF_PREDICTING;
 
 	BackupNodeList(act, act->touching_sectorlist, &sector_t::touching_thinglist, PredictionTouchingSectors_sprev_Backup, PredictionTouchingSectorsBackup);
@@ -1500,76 +1461,64 @@ void P_PredictPlayer (player_t *player)
 	}
 	act->BlockNode = NULL;
 
-	// This essentially acts like a mini P_Ticker where only the stuff relevant to the client is actually
-	// called. Call order is preserved.
-	bool rubberband = false, rubberbandLimit = false;
-	DVector3 rubberbandPos = {};
-	const bool canRubberband = LastPredictedTic >= 0 && cl_rubberband_scale > 0.0f && cl_rubberband_scale < 1.0f;
-	const double rubberbandThreshold = max<float>(cl_rubberband_minmove, cl_rubberband_threshold);
+	// Values too small to be usable for lerping can be considered "off".
+	bool CanLerp = (!(cl_predict_lerpscale < 0.01f) && (ticdup == 1)), DoLerp = false, NoInterpolateOld = R_GetViewInterpolationStatus();
 	for (int i = gametic; i < maxtic; ++i)
 	{
-		// Make sure any portal paths have been cleared from the previous movement.
-		R_ClearInterpolationPath();
-		r_NoInterpolate = false;
-		// Because we're always predicting, this will get set by teleporters and then can never unset itself in the renderer properly.
-		player->mo->renderflags &= ~RF_NOINTERPOLATEVIEW;
+		if (!NoInterpolateOld)
+			R_RebuildViewInterpolation(player);
 
-		// Got snagged on something. Start correcting towards the player's final predicted position. We're
-		// being intentionally generous here by not really caring how the player got to that position, only
-		// that they ended up in the same spot on the same tick.
-		if (canRubberband && LastPredictedTic == i)
+		player->cmd = localcmds[i % LOCALCMDTICS];
+		P_PlayerThink (player);
+		player->mo->Tick ();
+
+		if (CanLerp && PredictionLast.gametic > 0 && i == PredictionLast.gametic && !NoInterpolateOld)
 		{
-			DVector3 diff = player->mo->Pos() - LastPredictedPosition;
-			diff += player->mo->Level->Displacements.getOffset(player->mo->Sector->PortalGroup, LastPredictedPortalGroup);
-			double dist = diff.LengthSquared();
-			if (dist >= EQUAL_EPSILON * EQUAL_EPSILON && dist > rubberbandThreshold * rubberbandThreshold)
+			// Z is not compared as lifts will alter this with no apparent change
+			// Make lerping less picky by only testing whole units
+			DoLerp = (int)PredictionLast.pos.X != (int)player->mo->X() || (int)PredictionLast.pos.Y != (int)player->mo->Y();
+
+			// Aditional Debug information
+			if (developer >= DMSG_NOTIFY && DoLerp)
 			{
-				rubberband = true;
-				rubberbandPos = player->mo->Pos();
-				rubberbandLimit = cl_rubberband_limit > 0.0f && dist > cl_rubberband_limit * cl_rubberband_limit;
+				DPrintf(DMSG_NOTIFY, "Lerp! Ltic (%d) && Ptic (%d) | Lx (%f) && Px (%f) | Ly (%f) && Py (%f)\n",
+					PredictionLast.gametic, i,
+					(PredictionLast.pos.X), (player->mo->X()),
+					(PredictionLast.pos.Y), (player->mo->Y()));
 			}
 		}
-
-		player->oldbuttons = player->cmd.ucmd.buttons;
-		player->cmd = localcmds[i % LOCALCMDTICS];
-		player->mo->ClearInterpolation();
-		player->mo->ClearFOVInterpolation();
-		P_PlayerThink(player);
-		player->mo->CallTick();
 	}
 
-	if (rubberband)
+	if (CanLerp)
 	{
-		DPrintf(DMSG_NOTIFY, "Prediction mismatch at (%.3f, %.3f, %.3f)\nExpected: (%.3f, %.3f, %.3f)\nCorrecting to (%.3f, %.3f, %.3f)\n",
-			LastPredictedPosition.X, LastPredictedPosition.Y, LastPredictedPosition.Z,
-			rubberbandPos.X, rubberbandPos.Y, rubberbandPos.Z,
-			player->mo->X(), player->mo->Y(), player->mo->Z());
+		if (NoInterpolateOld)
+			P_PredictionLerpReset();
 
-		if (rubberbandLimit)
+		else if (DoLerp)
 		{
-			// If too far away, instantly snap the player's view to their correct position.
-			player->mo->renderflags |= RF_NOINTERPOLATEVIEW;
+			// If lerping is already in effect, use the previous camera postion so the view doesn't suddenly snap
+			PredictionLerpFrom = (PredictionLerptics == 0) ? PredictionLast : PredictionLerpResult;
+			PredictionLerptics = 1;
 		}
-		else
-		{
-			R_ClearInterpolationPath();
-			player->mo->renderflags &= ~RF_NOINTERPOLATEVIEW;
 
-			DVector3 snapPos = {};
-			P_LerpCalculate(player->mo, LastPredictedPosition, snapPos, cl_rubberband_scale, cl_rubberband_threshold, cl_rubberband_minmove);
-			player->mo->PrevPortalGroup = LastPredictedPortalGroup;
-			player->mo->Prev = LastPredictedPosition;
-			const double zOfs = player->viewz - player->mo->Z();
-			player->mo->SetXYZ(snapPos);
-			player->viewz = snapPos.Z + zOfs;
+		PredictionLast.gametic = maxtic - 1;
+		PredictionLast.pos = player->mo->Pos();
+		//PredictionLast.portalgroup = player->mo->Sector->PortalGroup;
+
+		if (PredictionLerptics > 0)
+		{
+			if (PredictionLerpFrom.gametic > 0 &&
+				P_LerpCalculate(player->mo, PredictionLerpFrom, PredictionLast, PredictionLerpResult, (float)PredictionLerptics * cl_predict_lerpscale))
+			{
+				PredictionLerptics++;
+				player->mo->SetXYZ(PredictionLerpResult.pos);
+			}
+			else
+			{
+				PredictionLerptics = 0;
+			}
 		}
 	}
-
-	// This is intentionally done after rubberbanding starts since it'll automatically smooth itself towards
-	// the right spot until it reaches it.
-	LastPredictedTic = maxtic;
-	LastPredictedPosition = player->mo->Pos();
-	LastPredictedPortalGroup = player->mo->Level->PointInSector(LastPredictedPosition)->PortalGroup;
 }
 
 void P_UnPredictPlayer ()
@@ -1609,12 +1558,6 @@ void P_UnPredictPlayer ()
 
 		act->UnlinkFromWorld(&ctx);
 		memcpy(&act->snext, PredictionActorBackupArray.Data(), PredictionActorBackupArray.Size() - ((uint8_t *)&act->snext - (uint8_t *)act));
-
-		if (act->ViewPos != nullptr)
-		{
-			act->ViewPos->Offset = PredictionViewPosBackup.Pos;
-			act->ViewPos->Flags = PredictionViewPosBackup.Flags;
-		}
 
 		// The blockmap ordering needs to remain unchanged, too.
 		// Restore sector links and refrences.

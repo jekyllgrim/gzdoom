@@ -65,10 +65,11 @@
 #include "palutil.h"
 #include "st_start.h"
 #include "printf.h"
-#include "launcherwindow.h"
+#include "common/widgets/launcherwindow.h"
 
 #ifndef NO_GTK
 bool I_GtkAvailable ();
+int I_PickIWad_Gtk (WadStuff *wads, int numwads, bool showwin, int defaultiwad, int& autoloadflags);
 void I_ShowFatalError_Gtk(const char* errortext);
 #elif defined(__APPLE__)
 int I_PickIWad_Cocoa (WadStuff *wads, int numwads, bool showwin, int defaultiwad);
@@ -77,7 +78,6 @@ int I_PickIWad_Cocoa (WadStuff *wads, int numwads, bool showwin, int defaultiwad
 double PerfToSec, PerfToMillisec;
 CVAR(Bool, con_printansi, true, CVAR_GLOBALCONFIG|CVAR_ARCHIVE);
 CVAR(Bool, con_4bitansi, false, CVAR_GLOBALCONFIG|CVAR_ARCHIVE);
-EXTERN_CVAR(Bool, longsavemessages)
 
 extern FStartupScreen *StartWindow;
 
@@ -298,7 +298,7 @@ void I_PrintStr(const char *cp)
 	if (StartWindow) RedrawProgressBar(ProgressBarCurPos,ProgressBarMaxPos);
 }
 
-int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad, int& autoloadflags, FString &extraArgs)
+int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad, int& autoloadflags)
 {
 	if (!showwin)
 	{
@@ -308,7 +308,7 @@ int I_PickIWad (WadStuff *wads, int numwads, bool showwin, int defaultiwad, int&
 #ifdef __APPLE__
 	return I_PickIWad_Cocoa (wads, numwads, showwin, defaultiwad);
 #else
-	return LauncherWindow::ExecModal(wads, numwads, defaultiwad, &autoloadflags, &extraArgs);
+	return LauncherWindow::ExecModal(wads, numwads, defaultiwad, &autoloadflags);
 #endif
 }
 
@@ -373,17 +373,13 @@ void I_OpenShellFolder(const char* infolder)
 
 	if (!chdir(infolder))
 	{
-		if (longsavemessages)
-			Printf("Opening folder: %s\n", infolder);
+		Printf("Opening folder: %s\n", infolder);
 		std::system("xdg-open .");
 		chdir(curdir);
 	}
 	else
 	{
-		if (longsavemessages)
-			Printf("Unable to open directory '%s\n", infolder);
-		else
-			Printf("Unable to open requested directory\n");
+		Printf("Unable to open directory '%s\n", infolder);
 	}
 	free(curdir);
 }

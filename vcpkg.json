@@ -10,7 +10,7 @@
                 {
                     "name": "libvpx",
                     "default-features": false,
-                    "platform": "(!windows & static) | (windows & static & staticcrt)"
+                    "platform": "windows & static & staticcrt"
                 }
             ]
         },
@@ -21,7 +21,7 @@
                 {
                     "name": "openal-soft",
                     "default-features": false,
-                    "platform": "(!windows & static) | (windows & static & staticcrt)"
+                    "platform": "!windows | (windows & static & staticcrt)"
                 }
             ]
         }
@@ -29,19 +29,19 @@
     "dependencies": [
         {
             "name": "bzip2",
-            "platform": "(!windows & static) | (windows & static & staticcrt)"
+            "platform": "!windows | (windows & static & staticcrt)"
+        },
+        {
+            "name": "sdl2",
+            "platform": "!windows & !osx"
         },
         {
             "name": "libvpx",
-            "platform": "!windows & static"
+            "platform": "!windows"
         },
-	{
-            "name": "gtk3",
-            "platform": "!windows & !osx & static"
-	},
-	{
-            "name": "glib",
-            "platform": "!windows & !osx & static"
-	}
+        {
+            "name": "libwebp",
+            "platform": "!windows | (windows & static & staticcrt)"
+        }
     ]
 }

@@ -156,15 +156,7 @@ CUSTOM_CVAR(Int, am_cheat, 0, 0)
 
 
 CVAR(Int, am_rotate, 0, CVAR_ARCHIVE);
-CUSTOM_CVAR(Int, am_overlay, 0, CVAR_ARCHIVE)
-{
-	// stop overlay if we're told not to use it anymore.
-	if (automapactive && viewactive && (self == 0))
-	{
-		automapactive = false;
-		viewactive = true;
-	}
-}
+CVAR(Int, am_overlay, 0, CVAR_ARCHIVE);
 CVAR(Bool, am_showsecrets, true, CVAR_ARCHIVE);
 CVAR(Bool, am_showmonsters, true, CVAR_ARCHIVE);
 CVAR(Bool, am_showitems, false, CVAR_ARCHIVE);
@@ -216,19 +208,19 @@ CCMD(am_togglefollow)
 	am_followplayer = !am_followplayer;
 	if (primaryLevel && primaryLevel->automap)
 		primaryLevel->automap->ResetFollowLocation();
-	Printf("%s\n", GStrings.GetString(am_followplayer ? "AMSTR_FOLLOWON" : "AMSTR_FOLLOWOFF"));
+	Printf("%s\n", GStrings(am_followplayer ? "AMSTR_FOLLOWON" : "AMSTR_FOLLOWOFF"));
 }
 
 CCMD(am_togglegrid)
 {
 	am_showgrid = !am_showgrid;
-	Printf("%s\n", GStrings.GetString(am_showgrid ? "AMSTR_GRIDON" : "AMSTR_GRIDOFF"));
+	Printf("%s\n", GStrings(am_showgrid ? "AMSTR_GRIDON" : "AMSTR_GRIDOFF"));
 }
 
 CCMD(am_toggletexture)
 {
 	am_textured = !am_textured;
-	Printf("%s\n", GStrings.GetString(am_textured ? "AMSTR_TEXON" : "AMSTR_TEXOFF"));
+	Printf("%s\n", GStrings(am_textured ? "AMSTR_TEXON" : "AMSTR_TEXOFF"));
 }
 
 CCMD(am_setmark)
@@ -238,7 +230,7 @@ CCMD(am_setmark)
 		int m = primaryLevel->automap->addMark();
 		if (m >= 0)
 		{
-			Printf("%s %d\n", GStrings.GetString("AMSTR_MARKEDSPOT"), m);
+			Printf("%s %d\n", GStrings("AMSTR_MARKEDSPOT"), m);
 		}
 	}
 }
@@ -247,7 +239,7 @@ CCMD(am_clearmarks)
 {
 	if (primaryLevel && primaryLevel->automap && primaryLevel->automap->clearMarks())
 	{
-		Printf("%s\n", GStrings.GetString("AMSTR_MARKSCLEARED"));
+		Printf("%s\n", GStrings("AMSTR_MARKSCLEARED"));
 	}
 }
 
@@ -2624,7 +2616,7 @@ void DAutomap::drawWalls (bool allmap)
 				}
 				else if (line.flags & ML_SECRET)
 				{ // secret door
-					if (am_cheat != 0 && am_cheat < 4 && line.backsector != nullptr)
+					if (am_cheat != 0 && line.backsector != nullptr)
 						drawMline(&l, AMColors.SecretWallColor);
 					else
 						drawMline(&l, AMColors.WallColor);
@@ -2816,7 +2808,7 @@ void DAutomap::drawPlayers ()
 		int numarrowlines;
 
 		double vh = players[consoleplayer].viewheight;
-		DVector2 pos = players[consoleplayer].mo->InterpolatedPosition(r_viewpoint.TicFrac).XY();
+		DVector2 pos = players[consoleplayer].camera->InterpolatedPosition(r_viewpoint.TicFrac).XY();
 		pt.x = pos.X;
 		pt.y = pos.Y;
 		if (am_rotate == 1 || (am_rotate == 2 && viewactive))
@@ -2826,7 +2818,7 @@ void DAutomap::drawPlayers ()
 		}
 		else
 		{
-			angle = players[consoleplayer].mo->InterpolatedAngles(r_viewpoint.TicFrac).Yaw;
+			angle = players[consoleplayer].camera->InterpolatedAngles(r_viewpoint.TicFrac).Yaw;
 		}
 		
 		if (am_cheat != 0 && CheatMapArrow.Size() > 0)
@@ -2880,8 +2872,7 @@ void DAutomap::drawPlayers ()
 
 		if (p->mo != nullptr)
 		{
-			DVector2 pos = p->mo->InterpolatedPosition(r_viewpoint.TicFrac).XY();
-			pos += Level->Displacements.getOffset(Level->PointInSector(pos)->PortalGroup, MapPortalGroup);
+			DVector3 pos = p->mo->PosRelative(MapPortalGroup);
 			pt.x = pos.X;
 			pt.y = pos.Y;
 
@@ -2961,8 +2952,7 @@ void DAutomap::drawThings ()
 			if (am_cheat > 0 || !(t->flags6 & MF6_NOTONAUTOMAP)
 				|| (am_thingrenderstyles && !(t->renderflags & RF_INVISIBLE) && !(t->flags6 & MF6_NOTONAUTOMAP)))
 			{
-				DVector3 fracPos = t->InterpolatedPosition(r_viewpoint.TicFrac);
-				FVector2 pos = FVector2(float(fracPos.X),float(fracPos.Y)) + FVector2(t->Level->Displacements.getOffset(sec.PortalGroup, MapPortalGroup)) + FVector2(t->AutomapOffsets);
+				DVector3 pos = t->InterpolatedPosition(r_viewpoint.TicFrac) + t->Level->Displacements.getOffset(sec.PortalGroup, MapPortalGroup);
 				p.x = pos.X;
 				p.y = pos.Y;
 
@@ -2972,14 +2962,14 @@ void DAutomap::drawThings ()
 					spriteframe_t *frame;
 					int rotation = 0;
 
-					// try all modes backwards until a valid texture has been found.
+					// try all modes backwards until a valid texture has been found.	
 					for(int show = am_showthingsprites; show > 0 && texture == nullptr; show--)
 					{
 						const spritedef_t& sprite = sprites[t->sprite];
 						const size_t spriteIndex = sprite.spriteframes + (show > 1 ? t->frame : 0);
 
 						frame = &SpriteFrames[spriteIndex];
-						DAngle angle = DAngle::fromDeg(270.) - t->InterpolatedAngles(r_viewpoint.TicFrac).Yaw - t->SpriteRotation; 
+						DAngle angle = DAngle::fromDeg(270. + 22.5) - t->InterpolatedAngles(r_viewpoint.TicFrac).Yaw;
 						if (frame->Texture[0] != frame->Texture[1]) angle += DAngle::fromDeg(180. / 16);
 						if (am_rotate == 1 || (am_rotate == 2 && viewactive))
 						{

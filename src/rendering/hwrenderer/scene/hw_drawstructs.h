@@ -365,7 +365,6 @@ public:
 	PalEntry ThingColor;	// thing's own color
 	FColormap Colormap;
 	FSpriteModelFrame * modelframe;
-	int modelframeflags;
 	FRenderStyle RenderStyle;
 	int OverrideShader;
 
@@ -393,7 +392,6 @@ public:
 	TArray<lightlist_t> *lightlist;
 	DRotator Angles;
 
-	bool nomipmap; // force the sprite to have no mipmaps (ensures tiny sprites in the distance stay crisp)
 
 	void SplitSprite(HWDrawInfo *di, sector_t * frontsector, bool translucent);
 	void PerformSpriteClipAdjustment(AActor *thing, const DVector2 &thingpos, float spriteheight);
@@ -404,7 +402,7 @@ public:
 	void CreateVertices(HWDrawInfo *di);
 	void PutSprite(HWDrawInfo *di, bool translucent);
 	void Process(HWDrawInfo *di, AActor* thing,sector_t * sector, area_t in_area, int thruportal = false, bool isSpriteShadow = false);
-	void ProcessParticle(HWDrawInfo *di, particle_t *particle, sector_t *sector, class DVisualThinker *spr);//, int shade, int fakeside)
+	void ProcessParticle (HWDrawInfo *di, particle_t *particle, sector_t *sector);//, int shade, int fakeside)
 	void AdjustVisualThinker(HWDrawInfo *di, DVisualThinker *spr, sector_t *sector);
 
 	void DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent);

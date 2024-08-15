@@ -431,10 +431,6 @@ static void DoParseListMenuBody(FScanner &sc, DListMenuDescriptor *desc, bool &s
 		{
 			desc->mForceList = true;
 		}
-		else if (sc.Compare("CenterText"))
-		{
-			desc->mCenterText = true;
-		}
 		else
 		{
 			// all item classes from which we know that they support sized scaling.
@@ -772,7 +768,6 @@ static void ParseListMenu(FScanner &sc)
 	desc->mWLeft = 0;
 	desc->mWRight = 0;
 	desc->mCenter = false;
-	desc->mCenterText = false;
 	desc->mFromEngine = fileSystem.GetFileContainer(sc.LumpNum) == 0;	// flags menu if the definition is from the IWAD.
 	desc->mVirtWidth = -2;
 	desc->mCustomSizeSet = false;

@@ -171,7 +171,7 @@ void D_LoadWadSettings ()
 
 		while (conf < eof)
 		{
-			size_t i = 0;
+			size_t i;
 
 			// Fetch a line to execute
 			command.Clear();
@@ -179,14 +179,14 @@ void D_LoadWadSettings ()
 			{
 				command.Push(conf[i]);
 			}
-			if (i == 0) // Blank line
+			if (i == 0)
 			{
 				conf++;
 				continue;
 			}
 			command.Push(0);
 			conf += i;
-			if (conf >= eof || *conf == '\n')
+			if (*conf == '\n')
 			{
 				conf++;
 			}

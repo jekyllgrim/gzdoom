@@ -57,15 +57,14 @@ void PushButton::OnMouseMove(const Point& pos)
 	}
 }
 
-bool PushButton::OnMouseDown(const Point& pos, int key)
+void PushButton::OnMouseDown(const Point& pos, int key)
 {
 	SetFocus();
 	buttonDown = true;
 	Update();
-	return true;
 }
 
-bool PushButton::OnMouseUp(const Point& pos, int key)
+void PushButton::OnMouseUp(const Point& pos, int key)
 {
 	if (buttonDown)
 	{
@@ -74,7 +73,6 @@ bool PushButton::OnMouseUp(const Point& pos, int key)
 		Repaint();
 		Click();
 	}
-	return true;
 }
 
 void PushButton::OnMouseLeave()

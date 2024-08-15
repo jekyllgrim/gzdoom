@@ -82,7 +82,6 @@
 #include "p_blockmap.h"
 #include "p_3dmidtex.h"
 #include "vm.h"
-#include "d_main.h"
 
 #include "decallib.h"
 
@@ -5574,48 +5573,78 @@ void P_RailAttack(FRailParams *p)
 CVAR(Float, chase_height, -8.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, chase_dist, 90.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
-void R_OffsetView(FRenderViewpoint& viewPoint, const DVector3& dir, const double distance)
+void P_AimCamera(AActor *t1, DVector3 &campos, DAngle &camangle, sector_t *&CameraSector, bool &unlinked)
 {
-	const DAngle baseYaw = dir.Angle();
-	FTraceResults trace = {};
-	if (viewPoint.IsAllowedOoB() && V_IsHardwareRenderer())
+	double distance = clamp<double>(chase_dist, 0, 30000);
+	DAngle angle = t1->Angles.Yaw - DAngle::fromDeg(180);
+	DAngle pitch = t1->Angles.Pitch;
+	FTraceResults trace;
+	DVector3 vvec;
+	double sz;
+
+	double pc = pitch.Cos();
+
+	vvec = { pc * angle.Cos(), pc * angle.Sin(), pitch.Sin() };
+	sz = t1->Top() - t1->Floorclip + clamp<double>(chase_height, -1000, 1000);
+
+	if (Trace(t1->PosAtZ(sz), t1->Sector, vvec, distance, 0, 0, NULL, trace) &&
+		trace.Distance > 10)
 	{
-		viewPoint.Pos += dir * distance;
-		viewPoint.sector = viewPoint.ViewLevel->PointInRenderSubsector(viewPoint.Pos)->sector;
-	}
-	else if (Trace(viewPoint.Pos, viewPoint.sector, dir, distance, 0u, 0u, nullptr, trace))
-	{
-		viewPoint.Pos = trace.HitPos - trace.HitVector * min<double>(5.0, trace.Distance);
-		viewPoint.sector = viewPoint.ViewLevel->PointInRenderSubsector(viewPoint.Pos)->sector;
-		viewPoint.Angles.Yaw += deltaangle(baseYaw, trace.SrcAngleFromTarget);
+		// Position camera slightly in front of hit thing
+		campos = t1->PosAtZ(sz) + vvec *(trace.Distance - 5);
 	}
 	else
 	{
-		viewPoint.Pos = trace.HitPos;
-		viewPoint.sector = trace.Sector;
-		viewPoint.Angles.Yaw += deltaangle(baseYaw, trace.SrcAngleFromTarget);
+		campos = trace.HitPos - trace.HitVector * 1/256.;
 	}
+	CameraSector = trace.Sector;
+	unlinked = trace.unlinked;
+	camangle = trace.SrcAngleFromTarget - DAngle::fromDeg(180.);
+}
 
-	// TODO: Why does this even need to be done? Please fix tracers already.
-	if (!viewPoint.IsAllowedOoB() || !V_IsHardwareRenderer())
+struct ViewPosPortal
+{
+	int counter;
+};
+
+static ETraceStatus VPos_CheckPortal(FTraceResults &res, void *userdata)
+{
+	//[MC] Mirror how third person works.
+	ViewPosPortal *pc = (ViewPosPortal *)userdata;
+
+	if (res.HitType == TRACE_CrossingPortal)
 	{
-		if (dir.Z < 0.0)
-		{
-			while (!viewPoint.sector->PortalBlocksMovement(sector_t::floor) && viewPoint.Pos.Z < viewPoint.sector->GetPortalPlaneZ(sector_t::floor))
-			{
-				viewPoint.Pos += viewPoint.sector->GetPortalDisplacement(sector_t::floor);
-				viewPoint.sector = viewPoint.sector->GetPortal(sector_t::floor)->mDestination;
-			}
-		}
-		else if (dir.Z > 0.0)
-		{
-			while (!viewPoint.sector->PortalBlocksMovement(sector_t::ceiling) && viewPoint.Pos.Z > viewPoint.sector->GetPortalPlaneZ(sector_t::ceiling))
-			{
-				viewPoint.Pos += viewPoint.sector->GetPortalDisplacement(sector_t::ceiling);
-				viewPoint.sector = viewPoint.sector->GetPortal(sector_t::ceiling)->mDestination;
-			}
-		}
+		res.HitType = TRACE_HitNone; // Needed to force the trace to continue appropriately.
+		pc->counter++;
+		return TRACE_Skip;
 	}
+	if (res.HitType == TRACE_HitActor)
+	{
+		return TRACE_Skip;
+	}
+	return TRACE_Stop;
+}
+
+// [MC] Used for ViewPos. Uses code borrowed from P_AimCamera.
+void P_AdjustViewPos(AActor *t1, DVector3 orig, DVector3 &campos, sector_t *&CameraSector, bool &unlinked, DViewPosition *VP, FRenderViewpoint *view)
+{
+	FTraceResults trace;
+	ViewPosPortal pc;
+	pc.counter = 0;
+	const DVector3 vvec = campos - orig;
+	const double distance = vvec.Length();
+
+	// Trace handles all of the portal crossing, which is why there is no usage of Vec#Offset(Z).
+	if (Trace(orig, CameraSector, vvec.Unit(), distance, 0, 0, t1, trace, TRACE_ReportPortals, VPos_CheckPortal, &pc) && 
+		trace.Distance > 5)
+		campos = orig + vvec.Unit() * (trace.Distance - 5);
+	else
+		campos = trace.HitPos - trace.HitVector * 1 / 256.;
+	
+
+	if (pc.counter > 2) view->noviewer = true;
+	CameraSector = trace.Sector;
+	unlinked = trace.unlinked;
 }
 
 //==========================================================================
@@ -5959,7 +5988,7 @@ CUSTOM_CVAR(Float, splashfactor, 1.f, CVAR_SERVERINFO)
 // Used by anything without OLDRADIUSDMG flag
 //==========================================================================
 
-static double GetRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, int bombdamage, double bombdistance, double fulldamagedistance, bool thingbombsource, bool round)
+static double GetRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, int bombdamage, int bombdistance, int fulldamagedistance, bool thingbombsource, bool round)
 {
 	// [RH] New code. The bounding box only covers the
 	// height of the thing and not the height of the map.
@@ -5968,7 +5997,7 @@ static double GetRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, 
 	double dx, dy;
 	double boxradius;
 
-	double bombdistancefloat = 1.0 / (bombdistance - fulldamagedistance);
+	double bombdistancefloat = 1. / (double)(bombdistance - fulldamagedistance);
 	double bombdamagefloat = (double)bombdamage;
 
 	if (!round)
@@ -6015,8 +6044,8 @@ static double GetRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, 
 	{
 		len = bombspot->Distance3D (thing);
 	}
-	len = clamp<double>(len - fulldamagedistance, 0.0, len);
-	points = bombdamagefloat * (1.0 - len * bombdistancefloat);
+	len = clamp<double>(len - (double)fulldamagedistance, 0, len);
+	points = bombdamagefloat * (1. - len * bombdistancefloat);
 
 	// Calculate the splash and radius damage factor if called by P_RadiusAttack.
 	// Otherwise, just get the raw damage. This allows modders to manipulate it
@@ -6044,7 +6073,7 @@ static double GetRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, 
 // based on XY distance.
 //==========================================================================
 
-static int GetOldRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, int bombdamage, double bombdistance, double fulldamagedistance)
+static int GetOldRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, int bombdamage, int bombdistance, int fulldamagedistance)
 {
 	const int ret = fromaction ? 0 : -1; // -1 is specifically for P_RadiusAttack; continue onto another actor.
 	double dx, dy, dist;
@@ -6065,8 +6094,8 @@ static int GetOldRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, 
 	// When called from the action function, ignore the sight check.
 	if (fromaction || P_CheckSight(thing, bombspot, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
 	{
-		dist = clamp<double>(dist - fulldamagedistance, 0.0, dist);
-		int damage = (int)Scale((double)bombdamage, bombdistance - dist, bombdistance);
+		dist = clamp<double>(dist - fulldamagedistance, 0, dist);
+		int damage = Scale(bombdamage, bombdistance - int(dist), bombdistance);
 
 		if (!fromaction)
 		{
@@ -6088,7 +6117,7 @@ static int GetOldRadiusDamage(bool fromaction, AActor *bombspot, AActor *thing, 
 // damage and not taking into account any damage reduction.
 //==========================================================================
 
-int P_GetRadiusDamage(AActor *self, AActor *thing, int damage, double distance, double fulldmgdistance, bool oldradiusdmg, bool circular)
+int P_GetRadiusDamage(AActor *self, AActor *thing, int damage, int distance, int fulldmgdistance, bool oldradiusdmg, bool circular)
 {
 
 	if (!thing)
@@ -6100,10 +6129,10 @@ int P_GetRadiusDamage(AActor *self, AActor *thing, int damage, double distance, 
 		return damage;
 	}
 
-	fulldmgdistance = clamp<double>(fulldmgdistance, 0.0, distance - 1.0);
+	fulldmgdistance = clamp<int>(fulldmgdistance, 0, distance - 1);
 
 	// Mirroring A_Explode's behavior.
-	if (distance <= 0.0)
+	if (distance <= 0)
 		distance = damage;
 
 	const int newdam = oldradiusdmg
@@ -6120,15 +6149,15 @@ int P_GetRadiusDamage(AActor *self, AActor *thing, int damage, double distance, 
 //
 //==========================================================================
 
-int P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, double bombdistance, FName bombmod,
-	int flags, double fulldamagedistance, FName species)
+int P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bombdistance, FName bombmod,
+	int flags, int fulldamagedistance, FName species)
 {
-	if (bombdistance <= 0.0)
+	if (bombdistance <= 0)
 		return 0;
-	fulldamagedistance = clamp<double>(fulldamagedistance, 0.0, bombdistance - 1.0);
+	fulldamagedistance = clamp<int>(fulldamagedistance, 0, bombdistance - 1);
 
 	FPortalGroupArray grouplist(FPortalGroupArray::PGA_Full3d);
-	FMultiBlockThingsIterator it(grouplist, bombspot->Level, bombspot->X(), bombspot->Y(), bombspot->Z() - bombdistance, bombspot->Height + bombdistance*2.0, bombdistance, false, bombspot->Sector);
+	FMultiBlockThingsIterator it(grouplist, bombspot->Level, bombspot->X(), bombspot->Y(), bombspot->Z() - bombdistance, bombspot->Height + bombdistance*2, bombdistance, false, bombspot->Sector);
 	FMultiBlockThingsIterator::CheckResult cres;
 
 	if (flags & RADF_SOURCEISSPOT)
@@ -6179,7 +6208,7 @@ int P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, double 
 			continue;
 
 		//[inkoalawetrust] Don't harm actors friendly to the explosions' source. But do harm the source.
-		if ((flags & RADF_NOALLIES) && bombsource && bombsource->IsFriend(thing) && !(thing == bombsource || thing == bombspot))
+		if ((flags & RADF_NOALLIES) && bombsource->IsFriend(thing) && !(thing == bombsource || thing == bombspot))
 			continue;
 
 		if (bombsource && thing != bombsource && bombsource->player && P_ShouldPassThroughPlayer(bombsource, thing))

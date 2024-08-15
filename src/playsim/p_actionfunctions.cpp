@@ -1292,7 +1292,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Print)
 	PARAM_FLOAT	(time);
 	PARAM_NAME	(fontname);
 
-	if (text[0] == '$') text = GStrings.GetString(&text[1]);
+	if (text[0] == '$') text = GStrings(&text[1]);
 	if (self->CheckLocalView() ||
 		(self->target != NULL && self->target->CheckLocalView()))
 	{
@@ -1330,7 +1330,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_PrintBold)
 	float saved = con_midtime;
 	FFont *font = NULL;
 	
-	if (text[0] == '$') text = GStrings.GetString(&text[1]);
+	if (text[0] == '$') text = GStrings(&text[1]);
 	if (fontname != NAME_None)
 	{
 		font = V_GetFont(fontname.GetChars());
@@ -1359,7 +1359,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_Log)
 
 	if (local && !self->CheckLocalView()) return 0;
 
-	if (text[0] == '$') text = GStrings.GetString(&text[1]);
+	if (text[0] == '$') text = GStrings(&text[1]);
 	FString formatted = strbin1(text.GetChars());
 	Printf("%s\n", formatted.GetChars());
 	return 0;
@@ -1691,8 +1691,7 @@ DEFINE_ACTION_FUNCTION(AActor, A_SpawnParticleEx)
 	PARAM_FLOAT	(rollacc)
 
 	startalpha = clamp(startalpha, 0., 1.);
-	fadestep = clamp(fadestep, -1.0, 1.0);
-
+	if (fadestep > 0) fadestep = clamp(fadestep, 0., 1.);
 	size = fabs(size);
 	if (lifetime != 0)
 	{
@@ -3322,8 +3321,8 @@ DEFINE_ACTION_FUNCTION(AActor, A_Quake)
 	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_FLOAT		(intensity);
 	PARAM_INT		(duration);
-	PARAM_FLOAT		(damrad);
-	PARAM_FLOAT		(tremrad);
+	PARAM_INT		(damrad);
+	PARAM_INT		(tremrad);
 	PARAM_SOUND	(sound);
 
 	P_StartQuake(self->Level, self, 0, intensity, duration, damrad, tremrad, sound);
@@ -3345,14 +3344,14 @@ DEFINE_ACTION_FUNCTION(AActor, A_QuakeEx)
 	PARAM_FLOAT(intensityY);
 	PARAM_FLOAT(intensityZ);
 	PARAM_INT(duration);
-	PARAM_FLOAT(damrad);
-	PARAM_FLOAT(tremrad);
+	PARAM_INT(damrad);
+	PARAM_INT(tremrad);
 	PARAM_SOUND(sound);
 	PARAM_INT(flags);
 	PARAM_FLOAT(mulWaveX);
 	PARAM_FLOAT(mulWaveY);
 	PARAM_FLOAT(mulWaveZ);
-	PARAM_FLOAT(falloff);
+	PARAM_INT(falloff);
 	PARAM_INT(highpoint);
 	PARAM_FLOAT(rollIntensity);
 	PARAM_FLOAT(rollWave);
@@ -5097,7 +5096,7 @@ static void EnsureModelData(AActor * mobj)
 		auto ptr = Create<DActorModelData>();
 		
 		ptr->flags = (mobj->hasmodel ? MODELDATA_HADMODEL : 0);
-		ptr->modelDef = nullptr;
+		ptr->modelDef = NAME_None;
 		
 		mobj->modelData = ptr;
 		mobj->hasmodel = true;
@@ -5112,8 +5111,7 @@ static void CleanupModelData(AActor * mobj)
 		&& mobj->modelData->modelFrameGenerators.Size() == 0
 		&& mobj->modelData->skinIDs.Size() == 0
 		&& mobj->modelData->animationIDs.Size() == 0
-		&& mobj->modelData->modelDef == nullptr
-		&&(mobj->modelData->flags & ~MODELDATA_HADMODEL) == 0 )
+		&& mobj->modelData->modelDef == NAME_None)
 	{
 		mobj->hasmodel = mobj->modelData->flags & MODELDATA_HADMODEL;
 		mobj->modelData->Destroy();
@@ -5125,23 +5123,15 @@ enum ESetAnimationFlags
 {
 	SAF_INSTANT = 1 << 0,
 	SAF_LOOP = 1 << 1,
-	SAF_NOOVERRIDE = 1 << 2,
 };
 
-extern double getCurrentFrame(const AnimOverride &anim, double tic);
-
-void SetAnimationInternal(AActor * self, FName animName, double framerate, int startFrame, int loopFrame, int endFrame, int interpolateTics, int flags, double ticFrac)
+void SetAnimationInternal(AActor * self, FName animName, double framerate, int startFrame, int loopFrame, int interpolateTics, int flags, double ticFrac)
 {
 	if(!self) ThrowAbortException(X_READ_NIL, "In function parameter self");
 
 	if(!(self->flags9 & MF9_DECOUPLEDANIMATIONS))
 	{
 		ThrowAbortException(X_OTHER, "Cannot set animation for non-decoupled actors");
-	}
-
-	if(!BaseSpriteModelFrames.CheckKey(self->GetClass()))
-	{
-		ThrowAbortException(X_OTHER, "Actor class is missing a MODELDEF definition or a MODELDEF BaseFrame");
 	}
 
 	if(interpolateTics <= 0) interpolateTics = 1;
@@ -5152,6 +5142,11 @@ void SetAnimationInternal(AActor * self, FName animName, double framerate, int s
 	{
 		self->modelData->curAnim.flags = ANIMOVERRIDE_NONE;
 		return;
+	}
+
+	if(!(flags & SAF_INSTANT))
+	{
+		self->modelData->prevAnim = self->modelData->curAnim;
 	}
 
 	double tic = self->Level->totaltime;
@@ -5166,21 +5161,9 @@ void SetAnimationInternal(AActor * self, FName animName, double framerate, int s
 	if(animStart == FErr_NotFound)
 	{
 		self->modelData->curAnim.flags = ANIMOVERRIDE_NONE;
-		Printf("Could not find animation %s\n", animName.GetChars());
+		Printf("Could not find animation %s", animName.GetChars());
 		return;
 	}
-
-	if((flags & SAF_NOOVERRIDE) && self->modelData->curAnim.flags != ANIMOVERRIDE_NONE && self->modelData->curAnim.firstFrame == animStart)
-	{
-		//same animation as current, skip setting it
-		return;
-	}
-
-	if(!(flags & SAF_INSTANT))
-	{
-		self->modelData->prevAnim = self->modelData->curAnim;
-	}
-
 	int animEnd = mdl->FindLastFrame(animName);
 
 	if(framerate < 0)
@@ -5193,53 +5176,45 @@ void SetAnimationInternal(AActor * self, FName animName, double framerate, int s
 	if(startFrame >= len)
 	{
 		self->modelData->curAnim.flags = ANIMOVERRIDE_NONE;
-		Printf("frame %d (startFrame) is past the end of animation %s\n", startFrame, animName.GetChars());
+		Printf("frame %d is past the end of animation %s", startFrame, animName.GetChars());
 		return;
 	}
 	else if(loopFrame >= len)
 	{
 		self->modelData->curAnim.flags = ANIMOVERRIDE_NONE;
-		Printf("frame %d (loopFrame) is past the end of animation %s\n", startFrame, animName.GetChars());
-		return;
-	}
-	else if(endFrame >= len)
-	{
-		self->modelData->curAnim.flags = ANIMOVERRIDE_NONE;
-		Printf("frame %d (endFrame) is past the end of animation %s\n", endFrame, animName.GetChars());
+		Printf("frame %d is past the end of animation %s", startFrame, animName.GetChars());
 		return;
 	}
 	
 	self->modelData->curAnim.firstFrame = animStart;
-	self->modelData->curAnim.lastFrame = endFrame < 0 ? animEnd - 1 : animStart + endFrame;
+	self->modelData->curAnim.lastFrame = animEnd - 1;
 	self->modelData->curAnim.startFrame = startFrame < 0 ? animStart : animStart + startFrame;
 	self->modelData->curAnim.loopFrame = loopFrame < 0 ? animStart : animStart + loopFrame;
 	self->modelData->curAnim.flags = (flags&SAF_LOOP) ? ANIMOVERRIDE_LOOP : 0;
+	self->modelData->curAnim.switchTic = tic;
 	self->modelData->curAnim.framerate = (float)framerate;
 
 	if(!(flags & SAF_INSTANT))
 	{
-		self->modelData->prevAnim.startFrame = getCurrentFrame(self->modelData->prevAnim, tic);
-		
-		int startTic = floor(tic) + interpolateTics;
-		self->modelData->curAnim.startTic = startTic;
-		self->modelData->curAnim.switchOffset = startTic - tic;
+		self->modelData->curAnim.startTic = floor(tic) + interpolateTics;
 	}
 	else
 	{
 		self->modelData->curAnim.startTic = tic;
-		self->modelData->curAnim.switchOffset = 0;
 	}
 }
 
-void SetAnimationNative(AActor * self, int i_animName, double framerate, int startFrame, int loopFrame, int endFrame, int interpolateTics, int flags)
+void SetAnimationNative(AActor * self, int i_animName, double framerate, int startFrame, int loopFrame, int interpolateTics, int flags)
 {
-	SetAnimationInternal(self, FName(ENamedName(i_animName)), framerate, startFrame, loopFrame, endFrame, interpolateTics, flags, 1);
+	SetAnimationInternal(self, FName(ENamedName(i_animName)), framerate, startFrame, loopFrame, interpolateTics, flags, 1);
 }
 
-void SetAnimationUINative(AActor * self, int i_animName, double framerate, int startFrame, int loopFrame, int endFrame, int interpolateTics, int flags)
+void SetAnimationUINative(AActor * self, int i_animName, double framerate, int startFrame, int loopFrame, int interpolateTics, int flags)
 {
-	SetAnimationInternal(self, FName(ENamedName(i_animName)), framerate, startFrame, loopFrame, endFrame, interpolateTics, flags, I_GetTimeFrac());
+	SetAnimationInternal(self, FName(ENamedName(i_animName)), framerate, startFrame, loopFrame, interpolateTics, flags, I_GetTimeFrac());
 }
+
+extern double getCurrentFrame(const AnimOverride &anim, double tic);
 
 void SetAnimationFrameRateInternal(AActor * self, double framerate, double ticFrac)
 {
@@ -5260,23 +5235,23 @@ void SetAnimationFrameRateInternal(AActor * self, double framerate, double ticFr
 	}
 
 
+	if(self->modelData->curAnim.startTic < ticFrac)
+	{
+		self->modelData->curAnim.framerate = (float)framerate;
+		return;
+	}
+
 	double tic = self->Level->totaltime;
 	if ((ConsoleState == c_up || ConsoleState == c_rising) && (menuactive == MENU_Off || menuactive == MENU_OnNoPause) && !self->Level->isFrozen())
 	{
 		tic += ticFrac;
 	}
 
-	if(self->modelData->curAnim.startTic >= tic)
-	{
-		self->modelData->curAnim.framerate = (float)framerate;
-		return;
-	}
-
 	double frame = getCurrentFrame(self->modelData->curAnim, tic);
 
 	self->modelData->curAnim.startFrame = frame;
 	self->modelData->curAnim.startTic = tic;
-	self->modelData->curAnim.switchOffset = 0;
+	self->modelData->curAnim.switchTic = tic;
 	self->modelData->curAnim.framerate = (float)framerate;
 }
 
@@ -5288,32 +5263,6 @@ void SetAnimationFrameRateNative(AActor * self, double framerate)
 void SetAnimationFrameRateUINative(AActor * self, double framerate)
 {
 	SetAnimationFrameRateInternal(self, framerate, I_GetTimeFrac());
-}
-
-void SetModelFlag(AActor * self, int flag)
-{
-	EnsureModelData(self);
-	self->modelData->flags |= MODELDATA_OVERRIDE_FLAGS;
-	self->modelData->overrideFlagsSet |= flag;
-	self->modelData->overrideFlagsClear &= ~flag;
-}
-
-void ClearModelFlag(AActor * self, int flag)
-{
-	EnsureModelData(self);
-	self->modelData->flags |= MODELDATA_OVERRIDE_FLAGS;
-	self->modelData->overrideFlagsClear |= flag;
-	self->modelData->overrideFlagsSet &= ~flag;
-}
-
-void ResetModelFlags(AActor * self)
-{
-	if(self->modelData)
-	{
-		self->modelData->overrideFlagsClear = 0;
-		self->modelData->overrideFlagsSet = 0;
-		self->modelData->flags &= ~MODELDATA_OVERRIDE_FLAGS;
-	}
 }
 
 enum ChangeModelFlags
@@ -5342,16 +5291,14 @@ void ChangeModelNative(
 ) {
 	if(!self) ThrowAbortException(X_READ_NIL, "In function parameter self");
 
-	FName n_modeldef { ENamedName(i_modeldef) };
+	FName modeldef { ENamedName(i_modeldef) };
 	FName model { ENamedName(i_model) };
 	FName skin { ENamedName(i_skin) };
 	FName animation { ENamedName(i_animation) };
 
-	PClass * modeldef = nullptr;
-
-	if (n_modeldef != NAME_None && (modeldef = PClass::FindActor(n_modeldef.GetChars())) == nullptr)
+	if (modeldef != NAME_None && PClass::FindClass(modeldef.GetChars()) == nullptr)
 	{
-		Printf("Attempt to pass invalid modeldef name %s in %s.\n", n_modeldef.GetChars(), self->GetCharacterName());
+		Printf("Attempt to pass invalid modeldef name %s in %s.", modeldef.GetChars(), self->GetCharacterName());
 		return;
 	}
 
@@ -5459,6 +5406,57 @@ void ChangeModelNative(
 		}
 	}
 
+	//[SM] - We need to serialize file paths and model names so that they are pushed on loading save files. Likewise, let's not include models that were already parsed when initialized.
+	if (queryModel >= 0)
+	{
+		FString fullName;
+		fullName.Format("%s%s", modelpath.GetChars(), model.GetChars());
+		bool found = false;
+
+		for (auto &m : savedModelFiles) 
+		{
+			if(m.CompareNoCase(fullName) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found) for (auto &m : Models)
+		{
+			if (m->mFileName.CompareNoCase(fullName) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found) savedModelFiles.Push(fullName);
+	}
+	//Same for animations
+	if (queryAnimation >= 0)
+	{
+		FString fullName;
+		fullName.Format("%s%s", animationpath.GetChars(), animation.GetChars());
+		bool found = false;
+
+		for (auto &m : savedModelFiles) 
+		{
+			if(m.CompareNoCase(fullName) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found) for (auto &m : Models)
+		{
+			if (m->mFileName.CompareNoCase(fullName) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+		if(!found) savedModelFiles.Push(fullName);
+	}
+
 	CleanupModelData(mobj);
 
 	return;
@@ -5492,11 +5490,10 @@ DEFINE_ACTION_FUNCTION_NATIVE(AActor, SetAnimation, SetAnimationNative)
 	PARAM_FLOAT(framerate);
 	PARAM_INT(startFrame);
 	PARAM_INT(loopFrame);
-	PARAM_INT(endFrame);
 	PARAM_INT(interpolateTics);
 	PARAM_INT(flags);
 	
-	SetAnimationInternal(self, animName, framerate, startFrame, loopFrame, endFrame, interpolateTics, flags, 1);
+	SetAnimationInternal(self, animName, framerate, startFrame, loopFrame, interpolateTics, flags, 1);
 
 	return 0;
 }
@@ -5508,11 +5505,10 @@ DEFINE_ACTION_FUNCTION_NATIVE(AActor, SetAnimationUI, SetAnimationUINative)
 	PARAM_FLOAT(framerate);
 	PARAM_INT(startFrame);
 	PARAM_INT(loopFrame);
-	PARAM_INT(endFrame);
 	PARAM_INT(interpolateTics);
 	PARAM_INT(flags);
 	
-	SetAnimationInternal(self, animName, framerate, startFrame, loopFrame, endFrame, interpolateTics, flags, I_GetTimeFrac());
+	SetAnimationInternal(self, animName, framerate, startFrame, loopFrame, interpolateTics, flags, I_GetTimeFrac());
 
 	return 0;
 }
@@ -5533,35 +5529,6 @@ DEFINE_ACTION_FUNCTION_NATIVE(AActor, SetAnimationFrameRateUI, SetAnimationFrame
 	PARAM_FLOAT(framerate);
 	
 	SetAnimationFrameRateInternal(self, framerate, I_GetTimeFrac());
-
-	return 0;
-}
-
-DEFINE_ACTION_FUNCTION_NATIVE(AActor, SetModelFlag, SetModelFlag)
-{
-	PARAM_ACTION_PROLOGUE(AActor);
-	PARAM_INT(flag);
-
-	SetModelFlag(self, flag);
-
-	return 0;
-}
-
-DEFINE_ACTION_FUNCTION_NATIVE(AActor, ClearModelFlag, ClearModelFlag)
-{
-	PARAM_ACTION_PROLOGUE(AActor);
-	PARAM_INT(flag);
-
-	ClearModelFlag(self, flag);
-
-	return 0;
-}
-
-DEFINE_ACTION_FUNCTION_NATIVE(AActor, ResetModelFlags, ResetModelFlags)
-{
-	PARAM_ACTION_PROLOGUE(AActor);
-	
-	ResetModelFlags(self);
 
 	return 0;
 }

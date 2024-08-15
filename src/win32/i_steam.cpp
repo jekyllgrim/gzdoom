@@ -61,7 +61,6 @@
 
 #include "printf.h"
 
-#include "engineerrors.h"
 #include "version.h"
 #include "i_sound.h"
 #include "stats.h"
@@ -183,7 +182,6 @@ static bool QueryPathKey(HKEY key, const wchar_t *keypath, const wchar_t *valnam
 
 TArray<FString> I_GetGogPaths()
 {
-	// TODO Does the 2024 Update affect GOG version?
 	TArray<FString> result;
 	FString path;
 	std::wstring gamepath;
@@ -293,13 +291,9 @@ TArray<FString> I_GetSteamPath()
 		"hexen/base",
 		"hexen deathkings of the dark citadel/base",
 		"ultimate doom/base",
-		"ultimate doom/base/doom2",                          // 2024 Update
-		"ultimate doom/base/tnt",                            // 2024 Update
-		"ultimate doom/base/plutonia",                       // 2024 Update
 		"DOOM 3 BFG Edition/base/wads",
 		"Strife",
-		"Ultimate Doom/rerelease/DOOM_Data/StreamingAssets", // 2019 Unity port (previous-re-release branch in Doom + Doom II app)
-		"Ultimate Doom/rerelease",                           // 2024 KEX Port
+		"Ultimate Doom/rerelease/DOOM_Data/StreamingAssets",
 		"Doom 2/rerelease/DOOM II_Data/StreamingAssets",
 		"Doom 2/finaldoombase",
         "Master Levels of Doom/doom2"
@@ -313,29 +307,22 @@ TArray<FString> I_GetSteamPath()
 			return result;
 	}
 
-	try
+	TArray<FString> paths = ParseSteamRegistry((steamPath + "/config/libraryfolders.vdf").GetChars());
+
+	for(FString &path : paths)
 	{
-		TArray<FString> paths = ParseSteamRegistry((steamPath + "/config/libraryfolders.vdf").GetChars());
-
-		for (FString& path : paths)
-		{
-			path.ReplaceChars('\\', '/');
-			path += "/";
-		}
-
-		paths.Push(steamPath + "/steamapps/common/");
-
-		for (unsigned int i = 0; i < countof(steam_dirs); ++i)
-		{
-			for (const FString& path : paths)
-			{
-				result.Push(path + steam_dirs[i]);
-			}
-		}
+		path.ReplaceChars('\\','/');
+		path+="/";
 	}
-	catch (const CRecoverableError& err)
+
+	paths.Push(steamPath + "/steamapps/common/");
+
+	for(unsigned int i = 0; i < countof(steam_dirs); ++i)
 	{
-		// don't abort on errors in here. Just return an empty path.
+		for(const FString &path : paths)
+		{
+			result.Push(path + steam_dirs[i]);
+		}
 	}
 
 	return result;
@@ -355,7 +342,6 @@ TArray<FString> I_GetBethesdaPath()
 	TArray<FString> result;
 	static const char* const bethesda_dirs[] =
 	{
-		// TODO Does the 2024 Update affect Bethesda Launcher?
 		"DOOM_Classic_2019/base",
 		"DOOM_Classic_2019/rerelease/DOOM_Data/StreamingAssets",
 		"DOOM_II_Classic_2019/base",

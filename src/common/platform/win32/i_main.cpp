@@ -158,7 +158,7 @@ int DoMain (HINSTANCE hInstance)
 		Args->AppendArg(FString(wargv[i]));
 	}
 
-	if (Args->CheckParm("-stdout") || Args->CheckParm("-norun"))
+	if (Args->CheckParm("-stdout"))
 	{
 		// As a GUI application, we don't normally get a console when we start.
 		// If we were run from the shell and are on XP+, we can attach to its
@@ -284,12 +284,12 @@ int DoMain (HINSTANCE hInstance)
 				HANDLE stdinput = GetStdHandle(STD_INPUT_HANDLE);
 
 				ShowWindow(mainwindow.GetHandle(), SW_HIDE);
-				if (StdOut != nullptr) WriteFile(StdOut, "Press any key to exit...", 24, &bytes, nullptr);
+				WriteFile(StdOut, "Press any key to exit...", 24, &bytes, NULL);
 				FlushConsoleInputBuffer(stdinput);
 				SetConsoleMode(stdinput, 0);
 				ReadConsole(stdinput, &bytes, 1, &bytes, NULL);
 			}
-			else if (StdOut == nullptr)
+			else if (StdOut == NULL)
 			{
 				mainwindow.ShowErrorPane(nullptr);
 			}

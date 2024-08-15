@@ -819,7 +819,11 @@
 // [@CC_FALLTHROUGH{@]
 // \def ASMJIT_FALLTHROUGH
 // The code falls through annotation (switch / case).
-# define ASMJIT_FALLTHROUGH [[fallthrough]]
+#if ASMJIT_CC_CLANG && __cplusplus >= 201103L
+# define ASMJIT_FALLTHROUGH [[clang::fallthrough]]
+#else
+# define ASMJIT_FALLTHROUGH (void)0
+#endif
 // [@CC_FALLTHROUGH}@]
 
 // [@CC_UNUSED{@]

@@ -36,7 +36,6 @@
 #define AUTOSEGS_H
 
 #include <type_traits>
-#include <cstdint>
 
 #if defined(__clang__)
 #if defined(__has_feature) && __has_feature(address_sanitizer)

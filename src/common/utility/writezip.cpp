@@ -39,8 +39,6 @@
 #include "files.h"
 #include "m_swap.h"
 #include "w_zip.h"
-#include "fs_decompress.h"
-#include "cmdlib.h"
 
 using FileSys::FCompressedBuffer;
 
@@ -202,7 +200,7 @@ bool WriteZip(const char* filename, const FCompressedBuffer* content, size_t con
 			if (pos == -1)
 			{
 				delete f;
-				RemoveFile(filename);
+				remove(filename);
 				return false;
 			}
 			positions.Push(pos);
@@ -214,7 +212,7 @@ bool WriteZip(const char* filename, const FCompressedBuffer* content, size_t con
 			if (AppendCentralDirectory(f, content[i], dostime, positions[i]) < 0)
 			{
 				delete f;
-				RemoveFile(filename);
+				remove(filename);
 				return false;
 			}
 		}
@@ -231,7 +229,7 @@ bool WriteZip(const char* filename, const FCompressedBuffer* content, size_t con
 		if (f->Write(&dirend, sizeof(dirend)) != sizeof(dirend))
 		{
 			delete f;
-			RemoveFile(filename);
+			remove(filename);
 			return false;
 		}
 		delete f;

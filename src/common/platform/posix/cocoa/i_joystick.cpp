@@ -107,10 +107,6 @@ public:
 	virtual bool GetEnabled();
 	virtual void SetEnabled(bool enabled);
 
-	bool AllowsEnabledInBackground() { return false; }
-	bool GetEnabledInBackground() { return false; }
-	void SetEnabledInBackground(bool enabled) {}
-
 	virtual void SetDefaultConfig();
 	virtual FString GetIdentifier();
 

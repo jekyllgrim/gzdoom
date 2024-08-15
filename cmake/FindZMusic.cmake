@@ -10,15 +10,9 @@ if(ZMUSIC_INCLUDE_DIR AND ZMUSIC_LIBRARIES)
     set(ZMUSIC_FIND_QUIETLY TRUE)
 endif()
 
-find_path(ZMUSIC_INCLUDE_DIR zmusic.h
-    HINTS
-    ${CMAKE_SOURCE_DIR}/build/zmusic/include
-)
+find_path(ZMUSIC_INCLUDE_DIR zmusic.h)
 
-find_library(ZMUSIC_LIBRARIES NAMES zmusic
-    HINTS
-    ${CMAKE_SOURCE_DIR}/build/zmusic/build/source
-)
+find_library(ZMUSIC_LIBRARIES NAMES zmusic)
 mark_as_advanced(ZMUSIC_LIBRARIES ZMUSIC_INCLUDE_DIR)
 
 # handle the QUIETLY and REQUIRED arguments and set ZMUSIC_FOUND to TRUE if 

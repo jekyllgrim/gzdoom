@@ -381,14 +381,12 @@ static HANDLE WriteMyMiniDump (void)
 			{
 				MiniDumpThreadData dumpdata = { file, pMiniDumpWriteDump, &exceptor };
 				DWORD id;
-				HANDLE thread = CreateThread (NULL, 0, WriteMiniDumpInAnotherThread, &dumpdata, 0, &id);
-				if (thread != nullptr)
+				HANDLE thread = CreateThread (NULL, 0, WriteMiniDumpInAnotherThread,
+					&dumpdata, 0, &id);
+				WaitForSingleObject (thread, INFINITE);
+				if (GetExitCodeThread (thread, &id))
 				{
-					WaitForSingleObject(thread, INFINITE);
-					if (GetExitCodeThread(thread, &id))
-					{
-						good = id;
-					}
+					good = id;
 				}
 			}
 		}

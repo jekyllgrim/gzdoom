@@ -110,8 +110,6 @@ EXTERN_CVAR (Bool, use_mouse)
 static int WheelDelta;
 extern bool CursorState;
 
-void SetCursorState(bool visible);
-
 extern BOOL paused;
 static bool noidle = false;
 
@@ -122,9 +120,6 @@ extern bool AppActive;
 int BlockMouseMove;
 
 static bool EventHandlerResultForNativeMouse;
-
-
-EXTERN_CVAR(Bool, i_pauseinbackground);
 
 
 CVAR (Bool, k_allowfullscreentoggle, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
@@ -339,8 +334,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (!GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER)) &&
 			size != 0)
 		{
-			TArray<uint8_t> array(size, true);
-			uint8_t *buffer = array.data();
+			uint8_t *buffer = (uint8_t *)alloca(size);
 			if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, buffer, &size, sizeof(RAWINPUTHEADER)) == size)
 			{
 				int code = GET_RAWINPUT_CODE_WPARAM(wParam);
@@ -420,7 +414,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SETCURSOR:
 		if (!CursorState)
 		{
-			SetCursorState(false); // turn off window cursor
+			SetCursor(NULL); // turn off window cursor
 			return TRUE;	// Prevent Windows from setting cursor to window class cursor
 		}
 		else
@@ -484,8 +478,8 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_ACTIVATEAPP:
-		AppActive = (wParam == TRUE);
-		if (wParam || !i_pauseinbackground)
+		AppActive = wParam == TRUE;
+		if (wParam)
 		{
 			SetPriorityClass (GetCurrentProcess (), INGAME_PRIORITY_CLASS);
 		}
@@ -497,7 +491,7 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_ERASEBKGND:
-		return DefWindowProc(hWnd, message, wParam, lParam);
+		return true;
 
 	case WM_DEVICECHANGE:
 		if (wParam == DBT_DEVNODES_CHANGED ||
@@ -697,15 +691,12 @@ void I_PutInClipboard (const char *str)
 
 	auto wstr = WideString(str);
 	HGLOBAL cliphandle = GlobalAlloc (GMEM_DDESHARE, wstr.length() * 2 + 2);
-	if (cliphandle != nullptr)
+	if (cliphandle != NULL)
 	{
 		wchar_t *ptr = (wchar_t *)GlobalLock (cliphandle);
-		if (ptr)
-		{
-			wcscpy(ptr, wstr.c_str());
-			GlobalUnlock(cliphandle);
-			SetClipboardData(CF_UNICODETEXT, cliphandle);
-		}
+		wcscpy (ptr, wstr.c_str());
+		GlobalUnlock (cliphandle);
+		SetClipboardData (CF_UNICODETEXT, cliphandle);
 	}
 	CloseClipboard ();
 }

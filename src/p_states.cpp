@@ -387,7 +387,7 @@ FState *FStateLabelStorage::GetState(int pos, PClassActor *cls, bool exact)
 
 //==========================================================================
 //
-// State label conversion functions for scripts
+// State label conversion function for scripts
 //
 //==========================================================================
 
@@ -395,7 +395,7 @@ DEFINE_ACTION_FUNCTION(AActor, FindState)
 {
 	PARAM_SELF_PROLOGUE(AActor);
 	PARAM_INT(newstate);
-	PARAM_BOOL(exact);
+	PARAM_BOOL(exact)
 	ACTION_RETURN_STATE(StateLabels.GetState(newstate, self->GetClass(), exact));
 }
 
@@ -405,15 +405,6 @@ DEFINE_ACTION_FUNCTION(AActor, ResolveState)
 	PARAM_ACTION_PROLOGUE(AActor);
 	PARAM_STATE_ACTION(newstate);
 	ACTION_RETURN_STATE(newstate);
-}
-
-// find state by string instead of label
-DEFINE_ACTION_FUNCTION(AActor, FindStateByString)
-{
-	PARAM_SELF_PROLOGUE(AActor);
-	PARAM_STRING(newstate);
-	PARAM_BOOL(exact);
-	ACTION_RETURN_STATE(self->GetClass()->FindStateByString(newstate.GetChars(), exact));
 }
 
 //==========================================================================
@@ -506,10 +497,8 @@ int FStateDefinitions::GetStateLabelIndex (FName statename)
 	{
 		return -1;
 	}
-	if ((size_t)std->State <= StateArray.Size() + 1)
-		return (int)((ptrdiff_t)std->State - 1);
-	else
-		return -1;
+	assert((size_t)std->State <= StateArray.Size() + 1);
+	return (int)((ptrdiff_t)std->State - 1);
 }
 
 //==========================================================================

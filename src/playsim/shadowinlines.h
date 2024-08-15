@@ -25,14 +25,14 @@ inline FRandom pr_shadowaimz("VerticalShadowAim");
 //
 //==========================================================================
 
-struct SightCheckData
+struct ShadowCheckData
 {
 	AActor* HitShadow;
 };
 
-inline ETraceStatus CheckForShadowBlockers(FTraceResults& res, void* userdata)
+static ETraceStatus CheckForShadowBlockers(FTraceResults& res, void* userdata)
 {
-	SightCheckData* output = (SightCheckData*)userdata;
+	ShadowCheckData* output = (ShadowCheckData*)userdata;
 	if (res.HitType == TRACE_HitActor && res.Actor && (res.Actor->flags9 & MF9_SHADOWBLOCK))
 	{
 		output->HitShadow = res.Actor;
@@ -48,10 +48,10 @@ inline ETraceStatus CheckForShadowBlockers(FTraceResults& res, void* userdata)
 }
 
 // [inkoalawetrust] Check if an MF9_SHADOWBLOCK actor is standing between t1 and t2.
-inline AActor* P_CheckForShadowBlock(AActor* t1, AActor* t2, DVector3 pos, double& penaltyFactor)
+inline bool P_CheckForShadowBlock(AActor* t1, AActor* t2, DVector3 pos, double& penaltyFactor)
 {
 	FTraceResults result;
-	SightCheckData ShadowCheck;
+	ShadowCheckData ShadowCheck;
 	ShadowCheck.HitShadow = nullptr;
 	DVector3 dir;
 	double dist;
@@ -78,26 +78,21 @@ inline AActor* P_CheckForShadowBlock(AActor* t1, AActor* t2, DVector3 pos, doubl
 	return ShadowCheck.HitShadow;
 }
 
-inline bool AffectedByShadows(AActor* self)
+inline bool AffectedByShadows(AActor* self, AActor* other)
 {
 	return (!(self->flags6 & MF6_SEEINVISIBLE) || self->flags9 & MF9_SHADOWAIM);
 }
 
-inline AActor* CheckForShadows(AActor* self, AActor* other, DVector3 pos, double& penaltyFactor)
+inline bool CheckForShadows(AActor* self, AActor* other, DVector3 pos, double& penaltyFactor)
 {
-	if ((other && (other->flags & MF_SHADOW)) || (self->flags9 & MF9_DOSHADOWBLOCK))
-	{
-		AActor* shadowBlock = P_CheckForShadowBlock(self, other, pos, penaltyFactor);
-		return shadowBlock ? shadowBlock : other;
-	}
-	return nullptr;
+	return ((other && (other->flags & MF_SHADOW)) || (self->flags9 & MF9_DOSHADOWBLOCK) && P_CheckForShadowBlock(self, other, pos, penaltyFactor));
 }
 
-inline AActor* PerformShadowChecks(AActor* self, AActor* other, DVector3 pos, double& penaltyFactor)
+inline bool PerformShadowChecks(AActor* self, AActor* other, DVector3 pos, double& penaltyFactor)
 {
-    if (other != nullptr) penaltyFactor = other->ShadowPenaltyFactor; //Use target penalty factor by default.
-    else penaltyFactor = 1.0;
-    return AffectedByShadows(self) ? CheckForShadows(self, other, pos, penaltyFactor) : nullptr;
+	if (other != nullptr) penaltyFactor = other->ShadowPenaltyFactor; //Use target penalty factor by default.
+	else penaltyFactor = 1.0;
+	return (AffectedByShadows(self, other) && CheckForShadows(self, other, pos, penaltyFactor));
 }
 
 //==========================================================================

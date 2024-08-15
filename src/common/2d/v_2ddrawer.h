@@ -192,7 +192,7 @@ public:
 	TArray<TwoDVertex> mVertices;
 	TArray<RenderCommand> mData;
 	int Width, Height;
-	bool isIn2D = false;
+	bool isIn2D;
 	bool locked = false;	// prevents clearing of the data so it can be reused multiple times (useful for screen fades)
 	float screenFade = 1.f;
 	DVector2 offset;
@@ -317,7 +317,7 @@ public:
 
 	RefCountedPtr<DShape2DBufferInfo> bufferInfo;
 
-	DrawParms* lastParms = nullptr;
+	DrawParms* lastParms;
 
 	void OnDestroy() override;
 };

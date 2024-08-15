@@ -291,31 +291,29 @@ bool AreCompatiblePointerTypes(PType *dest, PType *source, bool forcompare)
 		if (!forcompare && fromtype->IsConst && !totype->IsConst) return false;
 		// A type is always compatible to itself.
 		if (fromtype == totype) return true;
+		// Pointers to different types are only compatible if both point to an object and the source type is a child of the destination type.
 		if (source->isObjectPointer() && dest->isObjectPointer())
-		{	// Pointers to different types are only compatible if both point to an object and the source type is a child of the destination type.
+		{
 			auto fromcls = static_cast<PObjectPointer*>(source)->PointedClass();
 			auto tocls = static_cast<PObjectPointer*>(dest)->PointedClass();
 			if (forcompare && tocls->IsDescendantOf(fromcls)) return true;
 			return (fromcls->IsDescendantOf(tocls));
 		}
-		else if (source->isClassPointer() && dest->isClassPointer())
-		{	// The same rules apply to class pointers. A child type can be assigned to a variable of a parent type.
+		// The same rules apply to class pointers. A child type can be assigned to a variable of a parent type.
+		if (source->isClassPointer() && dest->isClassPointer())
+		{
 			auto fromcls = static_cast<PClassPointer*>(source)->ClassRestriction;
 			auto tocls = static_cast<PClassPointer*>(dest)->ClassRestriction;
 			if (forcompare && tocls->IsDescendantOf(fromcls)) return true;
 			return (fromcls->IsDescendantOf(tocls));
 		}
-		else if(source->isFunctionPointer() && dest->isFunctionPointer())
+		if(source->isFunctionPointer() && dest->isFunctionPointer())
 		{
 			auto from = static_cast<PFunctionPointer*>(source);
 			auto to = static_cast<PFunctionPointer*>(dest);
 			if(from->PointedType == TypeVoid) return false;
 
 			return to->PointedType == TypeVoid || (AreCompatibleFnPtrTypes((PPrototype *)to->PointedType, (PPrototype *)from->PointedType) && from->ArgFlags == to->ArgFlags && FScopeBarrier::CheckSidesForFunctionPointer(from->Scope, to->Scope));
-		}
-		else if(source->isRealPointer() && dest->isRealPointer())
-		{
-			return fromtype->PointedType == totype->PointedType;
 		}
 	}
 	return false;
@@ -1942,12 +1940,6 @@ FxExpression *FxTypeCast::Resolve(FCompileContext &ctx)
 	{
 		bool writable;
 		basex->RequestAddress(ctx, &writable);
-
-		if(!writable && !ValueType->toPointer()->IsConst && ctx.Version >= MakeVersion(4, 12))
-		{
-			ScriptPosition.Message(MSG_ERROR, "Trying to assign readonly value to writable type.");
-		}
-
 		basex->ValueType = ValueType;
 		auto x = basex;
 		basex = nullptr;
@@ -8747,12 +8739,6 @@ FxExpression *FxMemberFunctionCall::Resolve(FCompileContext& ctx)
 	if (Self->ValueType->isRealPointer())
 	{
 		auto pointedType = Self->ValueType->toPointer()->PointedType;
-		
-		if(pointedType && pointedType->isStruct() && Self->ValueType->toPointer()->IsConst && ctx.Version >= MakeVersion(4, 12))
-		{
-			isreadonly = true;
-		}
-
 		if (pointedType && (pointedType->isDynArray() || pointedType->isMap() || pointedType->isMapIterator()))
 		{
 			Self = new FxOutVarDereference(Self, Self->ScriptPosition);
@@ -9282,7 +9268,7 @@ FxExpression *FxMemberFunctionCall::Resolve(FCompileContext& ctx)
 			return nullptr;
 		}
 	}
-	else if (Self->ValueType->isStruct() && !isreadonly)
+	else if (Self->ValueType->isStruct())
 	{
 		bool writable;
 
@@ -9542,11 +9528,7 @@ FxExpression *FxVMFunctionCall::Resolve(FCompileContext& ctx)
 	auto &argflags = Function->Variants[0].ArgFlags;
 	auto *defaults = FnPtrCall ? nullptr : &Function->Variants[0].Implementation->DefaultArgs;
 
-	if(FnPtrCall) static_cast<VMScriptFunction*>(ctx.Function->Variants[0].Implementation)->blockJit = true;
-
-	unsigned implicit = Function->GetImplicitArgs();
-
-	bool relaxed_named_arugments = (ctx.Version >= MakeVersion(4, 13));
+	int implicit = Function->GetImplicitArgs();
 
 	if (!CheckAccessibility(ctx.Version))
 	{
@@ -9578,128 +9560,21 @@ FxExpression *FxVMFunctionCall::Resolve(FCompileContext& ctx)
 	CallingFunction = ctx.Function;
 	if (ArgList.Size() > 0)
 	{
-		if ((argtypes.Size() == 0) || (argtypes.Last() != nullptr && ArgList.Size() + implicit > argtypes.Size()))
+		if (argtypes.Size() == 0)
 		{
 			ScriptPosition.Message(MSG_ERROR, "Too many arguments in call to %s", Function->SymbolName.GetChars());
 			delete this;
 			return nullptr;
 		}
 
-		bool isvararg = (argtypes.Last() == nullptr);
-
-		{
-			TDeletingArray<FxExpression*> OrderedArgs;
-			const unsigned count = (argtypes.Size() - implicit) - isvararg;
-
-			OrderedArgs.Resize(count);
-			memset(OrderedArgs.Data(), 0, sizeof(FxExpression*) * count);
-
-			unsigned index = 0;
-			unsigned n = ArgList.Size();
-
-			for(unsigned i = 0; i < n; i++)
-			{
-				if(ArgList[i]->ExprType == EFX_NamedNode)
-				{
-					if(FnPtrCall)
-					{
-						ScriptPosition.Message(MSG_ERROR, "Named arguments not supported in function pointer calls");
-						delete this;
-						return nullptr;
-					}
-					else if((index >= count) && isvararg)
-					{
-						ScriptPosition.Message(MSG_ERROR, "Cannot use a named argument in the varargs part of the parameter list.");
-						delete this;
-						return nullptr;
-					}
-					else
-					{
-						FName name = static_cast<FxNamedNode *>(ArgList[i])->name;
-						if(argnames[index + implicit] != name)
-						{
-							unsigned j;
-
-							for (j = 0; j < count; j++)
-							{
-								if (argnames[j + implicit] == name)
-								{
-									if(!relaxed_named_arugments && !(argflags[j + implicit] & VARF_Optional))
-									{
-										ScriptPosition.Message(MSG_ERROR, "Cannot use a named argument here - not all required arguments have been passed.");
-									}
-									else if(!relaxed_named_arugments && j < index)
-									{
-										ScriptPosition.Message(MSG_ERROR, "Named argument %s comes before current position in argument list.", name.GetChars());
-									}
-
-									// i don't think this needs any further optimization? 
-									//			O(N^2) complexity technically but N isn't likely to be large,
-									//			and the check itself is just an int comparison, so it should be fine
-									index = j;
-
-									break;
-								}
-							}
-
-							if(j == count)
-							{
-								ScriptPosition.Message(MSG_ERROR, "Named argument %s not found.", name.GetChars());
-								delete this;
-								return nullptr;
-							}
-						}
-						else if(!relaxed_named_arugments && !(argflags[index + implicit] & VARF_Optional))
-						{
-							ScriptPosition.Message(MSG_ERROR, "Cannot use a named argument here - not all required arguments have been passed.");
-						}
-					}
-				}
-
-				if(index >= count)
-				{
-					if(isvararg)
-					{
-						OrderedArgs.Push(ArgList[i]);
-						ArgList[i] = nullptr;
-						index++;
-					}
-					else
-					{
-						ScriptPosition.Message(MSG_ERROR, "Too many arguments in call to %s", Function->SymbolName.GetChars());
-						delete this;
-						return nullptr;
-					}
-				}
-				else
-				{
-					if(ArgList[i]->ExprType == EFX_NamedNode)
-					{
-						auto * node = static_cast<FxNamedNode *>(ArgList[i]);
-						OrderedArgs[index] = node->value;
-						node->value = nullptr;
-					}
-					else
-					{
-						OrderedArgs[index] = ArgList[i];
-					}
-					ArgList[i] = nullptr;
-					index++;
-				}
-			}
-
-			ArgList = std::move(OrderedArgs);
-		}
-
 		bool foundvarargs = false;
 		PType * type = nullptr;
 		int flag = 0;
-
-		int defaults_index = 0;
-
-		for(unsigned i = 0; i < implicit; i++)
+		if (argtypes.Size() > 0 && argtypes.Last() != nullptr && ArgList.Size() + implicit > argtypes.Size())
 		{
-			defaults_index += argtypes[i]->GetRegCount();
+			ScriptPosition.Message(MSG_ERROR, "Too many arguments in call to %s", Function->SymbolName.GetChars());
+			delete this;
+			return nullptr;
 		}
 
 		for (unsigned i = 0; i < ArgList.Size(); i++)
@@ -9717,44 +9592,93 @@ FxExpression *FxVMFunctionCall::Resolve(FCompileContext& ctx)
 			}
 			assert(type != nullptr);
 
-			if(!foundvarargs)
+			if (ArgList[i]->ExprType == EFX_NamedNode)
 			{
-				if(ArgList[i] == nullptr)
+				if(FnPtrCall)
 				{
-					if(!(flag & VARF_Optional))
+					ScriptPosition.Message(MSG_ERROR, "Named arguments not supported in function pointer calls");
+					delete this;
+					return nullptr;
+				}
+				if (!(flag & VARF_Optional))
+				{
+					ScriptPosition.Message(MSG_ERROR, "Cannot use a named argument here - not all required arguments have been passed.");
+					delete this;
+					return nullptr;
+				}
+				if (foundvarargs)
+				{
+					ScriptPosition.Message(MSG_ERROR, "Cannot use a named argument in the varargs part of the parameter list.");
+					delete this;
+					return nullptr;
+				}
+				unsigned j;
+				bool done = false;
+				FName name = static_cast<FxNamedNode *>(ArgList[i])->name;
+				for (j = 0; j < argnames.Size() - implicit; j++)
+				{
+					if (argnames[j + implicit] == name)
 					{
-						ScriptPosition.Message(MSG_ERROR, "Required argument %s has not been passed in call to %s", argnames[i + implicit].GetChars(), Function->SymbolName.GetChars());
-						delete this;
-						return nullptr;
-					}
-
-					auto ntype = argtypes[i + implicit];
-					// If this is a reference argument, the pointer type must be undone because the code below expects the pointed type as value type.
-					if (argflags[i + implicit] & VARF_Ref)
-					{
-						assert(ntype->isPointer());
-						ntype = TypeNullPtr; // the default of a reference type can only be a null pointer
-					}
-					if (ntype->GetRegCount() == 1)
-					{
-						ArgList[i] = new FxConstant(ntype, (*defaults)[defaults_index], ScriptPosition);
-					}
-					else 
-					{
-						// Vectors need special treatment because they are not normal constants
-						FxConstant *cs[4] = { nullptr };
-						for (int l = 0; l < ntype->GetRegCount(); l++)
+						if (j < i)
 						{
-							cs[l] = new FxConstant(TypeFloat64, (*defaults)[l + defaults_index], ScriptPosition);
+							ScriptPosition.Message(MSG_ERROR, "Named argument %s comes before current position in argument list.", name.GetChars());
+							delete this;
+							return nullptr;
 						}
-						ArgList[i] = new FxVectorValue(cs[0], cs[1], cs[2], cs[3], ScriptPosition);
+						// copy the original argument into the list
+						auto old = static_cast<FxNamedNode *>(ArgList[i]);
+						ArgList[i] = old->value; 
+						old->value = nullptr;
+						delete old;
+						// now fill the gap with constants created from the default list so that we got a full list of arguments.
+						int insert = j - i;
+						int skipdefs = 0;
+						// Defaults contain multiple entries for pointers so we need to calculate how much additional defaults we need to skip
+						for (unsigned k = 0; k < i + implicit; k++)
+						{
+							skipdefs += argtypes[k]->GetRegCount() - 1;
+						}
+						for (int k = 0; k < insert; k++)
+						{
+							auto ntype = argtypes[i + k + implicit];
+							// If this is a reference argument, the pointer type must be undone because the code below expects the pointed type as value type.
+							if (argflags[i + k + implicit] & VARF_Ref)
+							{
+								assert(ntype->isPointer());
+								ntype = TypeNullPtr; // the default of a reference type can only be a null pointer
+							}
+							if (ntype->GetRegCount() == 1)
+							{
+								auto x = new FxConstant(ntype, (*defaults)[i + k + skipdefs + implicit], ScriptPosition);
+								ArgList.Insert(i + k, x);
+							}
+							else 
+							{
+								// Vectors need special treatment because they are not normal constants
+								FxConstant *cs[4] = { nullptr };
+								for (int l = 0; l < ntype->GetRegCount(); l++)
+								{
+									cs[l] = new FxConstant(TypeFloat64, (*defaults)[l + i + k + skipdefs + implicit], ScriptPosition);
+								}
+								FxExpression *x = new FxVectorValue(cs[0], cs[1], cs[2], cs[3], ScriptPosition);
+								ArgList.Insert(i + k, x);
+								skipdefs += ntype->GetRegCount() - 1;
+							}
+						}
+						done = true;
+						break;
 					}
 				}
-
-				defaults_index += argtypes[i + implicit]->GetRegCount();
+				if (!done)
+				{
+					ScriptPosition.Message(MSG_ERROR, "Named argument %s not found.", name.GetChars());
+					delete this;
+					return nullptr;
+				}
+				// re-get the proper info for the inserted node.
+				type = argtypes[i + implicit];
+				flag = argflags[i + implicit];
 			}
-
-			assert(ArgList[i]);
 
 			FxExpression *x = nullptr;
 			if (foundvarargs && (Function->Variants[0].Flags & VARF_VarArg))
@@ -11750,7 +11674,7 @@ FxExpression *FxThreeArgForEachLoop::Resolve(FCompileContext &ctx)
 
 	if(HasGameSpecificThreeArgForEachLoopTypeNames())
 	{
-		ScriptPosition.Message(MSG_ERROR, "foreach( a, b, c : it ) - 'it' must be %s but is a %s", GetGameSpecificThreeArgForEachLoopTypeNames(), BlockIteratorExpr->ValueType->DescriptiveName());
+		ScriptPosition.Message(MSG_ERROR, "foreach( a, b, c : it ) - 'it' must be % but is a %s", GetGameSpecificThreeArgForEachLoopTypeNames(), BlockIteratorExpr->ValueType->DescriptiveName());
 		delete this;
 		return nullptr;
 	}
@@ -11803,7 +11727,7 @@ FxExpression *FxTypedForEachLoop::Resolve(FCompileContext &ctx)
 
 	if(HasGameSpecificTypedForEachLoopTypeNames())
 	{
-		ScriptPosition.Message(MSG_ERROR, "foreach(Type var : it ) - 'it' must be %s but is a %s",GetGameSpecificTypedForEachLoopTypeNames(), Expr->ValueType->DescriptiveName());
+		ScriptPosition.Message(MSG_ERROR, "foreach(Type var : it ) - 'it' must be % but is a %s",GetGameSpecificTypedForEachLoopTypeNames(), Expr->ValueType->DescriptiveName());
 		delete this;
 		return nullptr;
 	}
@@ -12624,14 +12548,7 @@ FxExpression *FxLocalVariableDeclaration::Resolve(FCompileContext &ctx)
 		{
 			if (Init->IsStruct())
 			{
-				bool writable = true;
-
-				if(ctx.Version >= MakeVersion(4, 12, 0))
-				{
-					Init->RequestAddress(ctx, &writable);
-				}
-
-				ValueType = NewPointer(ValueType, !writable);
+				ValueType = NewPointer(ValueType);
 				Init = new FxTypeCast(Init, ValueType, false);
 				SAFE_RESOLVE(Init, ctx);
 			}

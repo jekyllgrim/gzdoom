@@ -326,7 +326,8 @@ bool Win32GLVideo::SetupPixelFormat(int multisample)
 
 		if (!myWglChoosePixelFormatARB(m_hDC, attributes.data(), attribsFloat, 1, &pixelFormat, &numFormats))
 		{
-			I_FatalError("R_OPENGL: Couldn't choose pixel format. Retrying in compatibility mode\n");
+			Printf("R_OPENGL: Couldn't choose pixel format. Retrying in compatibility mode\n");
+			goto oldmethod;
 		}
 
 		if (vid_hdr && numFormats == 0) // This card/driver doesn't support the rgb16f pixel format. Fall back to 8bpc
@@ -342,7 +343,8 @@ bool Win32GLVideo::SetupPixelFormat(int multisample)
 
 			if (!myWglChoosePixelFormatARB(m_hDC, attributes.data(), attribsFloat, 1, &pixelFormat, &numFormats))
 			{
-				I_FatalError("R_OPENGL: Couldn't choose pixel format.");
+				Printf("R_OPENGL: Couldn't choose pixel format. Retrying in compatibility mode\n");
+				goto oldmethod;
 			}
 		}
 		else if (vid_hdr)
@@ -358,12 +360,41 @@ bool Win32GLVideo::SetupPixelFormat(int multisample)
 				vr_enable_quadbuffered = false;
 				goto again;
 			}
-			I_FatalError("R_OPENGL: No valid pixel formats found.");
+			Printf("R_OPENGL: No valid pixel formats found. Retrying in compatibility mode\n");
+			goto oldmethod;
 		}
 	}
 	else
 	{
-		I_FatalError("R_OPENGL: Unable to create an OpenGL render context. Insufficient driver support for context creation\n");
+	oldmethod:
+		// If wglChoosePixelFormatARB is not found we have to do it the old fashioned way.
+		static PIXELFORMATDESCRIPTOR pfd = {
+			sizeof(PIXELFORMATDESCRIPTOR),
+			1,
+			PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+			PFD_TYPE_RGBA,
+			32, // color depth
+			0, 0, 0, 0, 0, 0,
+			0,
+			0,
+			0,
+			0, 0, 0, 0,
+			32, // z depth
+			8, // stencil buffer
+			0,
+			PFD_MAIN_PLANE,
+			0,
+			0, 0, 0
+		};
+
+		pixelFormat = ChoosePixelFormat(m_hDC, &pfd);
+		DescribePixelFormat(m_hDC, pixelFormat, sizeof(pfd), &pfd);
+
+		if (pfd.dwFlags & PFD_GENERIC_FORMAT)
+		{
+			I_Error("R_OPENGL: OpenGL driver not accelerated!");
+			return false;
+		}
 	}
 
 	if (!::SetPixelFormat(m_hDC, pixelFormat, NULL))
@@ -421,7 +452,8 @@ bool Win32GLVideo::InitHardware(HWND Window, int multisample)
 			m_hRC = zd_wglCreateContext(m_hDC);
 			if (m_hRC == NULL)
 			{
-				I_FatalError("R_OPENGL: Unable to create an OpenGL render context.\n");
+				I_Error("R_OPENGL: Unable to create an OpenGL render context.\n");
+				return false;
 			}
 		}
 
@@ -432,7 +464,7 @@ bool Win32GLVideo::InitHardware(HWND Window, int multisample)
 		}
 	}
 	// We get here if the driver doesn't support the modern context creation API which always means an old driver.
-	I_FatalError("R_OPENGL: Unable to create an OpenGL render context. Insufficient driver support for context creation\n");
+	I_Error("R_OPENGL: Unable to create an OpenGL render context. Insufficient driver support for context creation\n");
 	return false;
 }
 

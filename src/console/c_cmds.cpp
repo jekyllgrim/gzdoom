@@ -120,8 +120,8 @@ CCMD (god)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_GOD);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_GOD);
 }
 
 CCMD(god2)
@@ -129,8 +129,8 @@ CCMD(god2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteInt8(DEM_GENERICCHEAT);
-	Net_WriteInt8(CHT_GOD2);
+	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_WriteByte(CHT_GOD2);
 }
 
 CCMD (iddqd)
@@ -138,8 +138,8 @@ CCMD (iddqd)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_IDDQD);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_IDDQD);
 }
 
 CCMD (buddha)
@@ -147,8 +147,8 @@ CCMD (buddha)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteInt8(DEM_GENERICCHEAT);
-	Net_WriteInt8(CHT_BUDDHA);
+	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_WriteByte(CHT_BUDDHA);
 }
 
 CCMD(buddha2)
@@ -156,8 +156,8 @@ CCMD(buddha2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteInt8(DEM_GENERICCHEAT);
-	Net_WriteInt8(CHT_BUDDHA2);
+	Net_WriteByte(DEM_GENERICCHEAT);
+	Net_WriteByte(CHT_BUDDHA2);
 }
 
 CCMD (notarget)
@@ -165,8 +165,8 @@ CCMD (notarget)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_NOTARGET);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_NOTARGET);
 }
 
 CCMD (fly)
@@ -174,8 +174,8 @@ CCMD (fly)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_FLY);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_FLY);
 }
 
 /*
@@ -190,8 +190,8 @@ CCMD (noclip)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_NOCLIP);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_NOCLIP);
 }
 
 CCMD (noclip2)
@@ -199,8 +199,8 @@ CCMD (noclip2)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_NOCLIP2);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_NOCLIP2);
 }
 
 CCMD (powerup)
@@ -208,8 +208,8 @@ CCMD (powerup)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_POWER);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_POWER);
 }
 
 CCMD (morphme)
@@ -219,12 +219,12 @@ CCMD (morphme)
 
 	if (argv.argc() == 1)
 	{
-		Net_WriteInt8 (DEM_GENERICCHEAT);
-		Net_WriteInt8 (CHT_MORPH);
+		Net_WriteByte (DEM_GENERICCHEAT);
+		Net_WriteByte (CHT_MORPH);
 	}
 	else
 	{
-		Net_WriteInt8 (DEM_MORPHEX);
+		Net_WriteByte (DEM_MORPHEX);
 		Net_WriteString (argv[1]);
 	}
 }
@@ -234,8 +234,8 @@ CCMD (anubis)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_ANUBIS);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_ANUBIS);
 }
 
 // [GRB]
@@ -244,8 +244,8 @@ CCMD (resurrect)
 	if (CheckCheatmode ())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_RESSURECT);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_RESSURECT);
 }
 
 EXTERN_CVAR (Bool, chasedemo)
@@ -276,8 +276,8 @@ CCMD (chase)
 		if (gamestate != GS_LEVEL || (!(dmflags2 & DF2_CHASECAM) && deathmatch && CheckCheatmode ()))
 			return;
 
-		Net_WriteInt8 (DEM_GENERICCHEAT);
-		Net_WriteInt8 (CHT_CHASECAM);
+		Net_WriteByte (DEM_GENERICCHEAT);
+		Net_WriteByte (CHT_CHASECAM);
 	}
 }
 
@@ -313,7 +313,7 @@ CCMD (idclev)
 			return;
 
 		// So be it.
-		Printf ("%s\n", GStrings.GetString("STSTR_CLEV"));
+		Printf ("%s\n", GStrings("STSTR_CLEV"));
       	G_DeferedInitNew (mapname.GetChars());
 		//players[0].health = 0;		// Force reset
 	}
@@ -337,7 +337,7 @@ CCMD (hxvisit)
 			if (P_CheckMapData(mapname.GetChars()))
 			{
 				// So be it.
-				Printf ("%s\n", GStrings.GetString("STSTR_CLEV"));
+				Printf ("%s\n", GStrings("STSTR_CLEV"));
       			G_DeferedInitNew (mapname.GetChars());
 				return;
 			}
@@ -386,12 +386,12 @@ CCMD (changemap)
 			{
 				if (argv.argc() > 2)
 				{
-					Net_WriteInt8 (DEM_CHANGEMAP2);
-					Net_WriteInt8 (atoi(argv[2]));
+					Net_WriteByte (DEM_CHANGEMAP2);
+					Net_WriteByte (atoi(argv[2]));
 				}
 				else
 				{
-					Net_WriteInt8 (DEM_CHANGEMAP);
+					Net_WriteByte (DEM_CHANGEMAP);
 				}
 				Net_WriteString (mapname);
 			}
@@ -412,7 +412,7 @@ CCMD (changeskill)
 {
 	if (!players[consoleplayer].mo || !usergame)
 	{
-		Printf ("Cannot change skills while not in a game.\n");
+		Printf ("Use the skill command when not in a game.\n");
 		return;
 	}
 
@@ -431,8 +431,7 @@ CCMD (changeskill)
 		}
 		else
 		{
-			Net_WriteInt8(DEM_CHANGESKILL);
-			Net_WriteInt32(skill);
+			NextSkill = skill;
 			Printf ("Skill %d will take effect on the next map.\n", skill);
 		}
 	}
@@ -447,12 +446,12 @@ CCMD (give)
 	if (CheckCheatmode () || argv.argc() < 2)
 		return;
 
-	Net_WriteInt8 (DEM_GIVECHEAT);
+	Net_WriteByte (DEM_GIVECHEAT);
 	Net_WriteString (argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteInt32(atoi(argv[2]));
+		Net_WriteLong(atoi(argv[2]));
 	else
-		Net_WriteInt32(0);
+		Net_WriteLong(0);
 }
 
 CCMD (take)
@@ -460,12 +459,12 @@ CCMD (take)
 	if (CheckCheatmode () || argv.argc() < 2)
 		return;
 
-	Net_WriteInt8 (DEM_TAKECHEAT);
+	Net_WriteByte (DEM_TAKECHEAT);
 	Net_WriteString (argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteInt32(atoi (argv[2]));
+		Net_WriteLong(atoi (argv[2]));
 	else
-		Net_WriteInt32 (0);
+		Net_WriteLong (0);
 }
 
 CCMD(setinv)
@@ -473,17 +472,17 @@ CCMD(setinv)
 	if (CheckCheatmode() || argv.argc() < 2)
 		return;
 
-	Net_WriteInt8(DEM_SETINV);
+	Net_WriteByte(DEM_SETINV);
 	Net_WriteString(argv[1]);
 	if (argv.argc() > 2)
-		Net_WriteInt32(atoi(argv[2]));
+		Net_WriteLong(atoi(argv[2]));
 	else
-		Net_WriteInt32(0);
+		Net_WriteLong(0);
 
 	if (argv.argc() > 3)
-		Net_WriteInt8(!!atoi(argv[3]));
+		Net_WriteByte(!!atoi(argv[3]));
 	else
-		Net_WriteInt8(0);
+		Net_WriteByte(0);
 
 }
 
@@ -514,18 +513,18 @@ CCMD (puke)
 
 		if (script > 0)
 		{
-			Net_WriteInt8 (DEM_RUNSCRIPT);
-			Net_WriteInt16 (script);
+			Net_WriteByte (DEM_RUNSCRIPT);
+			Net_WriteWord (script);
 		}
 		else
 		{
-			Net_WriteInt8 (DEM_RUNSCRIPT2);
-			Net_WriteInt16 (-script);
+			Net_WriteByte (DEM_RUNSCRIPT2);
+			Net_WriteWord (-script);
 		}
-		Net_WriteInt8 (argn);
+		Net_WriteByte (argn);
 		for (i = 0; i < argn; ++i)
 		{
-			Net_WriteInt32 (arg[i]);
+			Net_WriteLong (arg[i]);
 		}
 	}
 }
@@ -558,12 +557,12 @@ CCMD (pukename)
 				arg[i] = atoi(argv[argstart + i]);
 			}
 		}
-		Net_WriteInt8(DEM_RUNNAMEDSCRIPT);
+		Net_WriteByte(DEM_RUNNAMEDSCRIPT);
 		Net_WriteString(argv[1]);
-		Net_WriteInt8(argn | (always << 7));
+		Net_WriteByte(argn | (always << 7));
 		for (i = 0; i < argn; ++i)
 		{
-			Net_WriteInt32(arg[i]);
+			Net_WriteLong(arg[i]);
 		}
 	}
 }
@@ -604,12 +603,12 @@ CCMD (special)
 				return;
 			}
 		}
-		Net_WriteInt8(DEM_RUNSPECIAL);
-		Net_WriteInt16(specnum);
-		Net_WriteInt8(argc - 2);
+		Net_WriteByte(DEM_RUNSPECIAL);
+		Net_WriteWord(specnum);
+		Net_WriteByte(argc - 2);
 		for (int i = 2; i < argc; ++i)
 		{
-			Net_WriteInt32(atoi(argv[i]));
+			Net_WriteLong(atoi(argv[i]));
 		}
 	}
 }
@@ -640,10 +639,10 @@ CCMD (warp)
 	}
 	else
 	{
-		Net_WriteInt8 (DEM_WARPCHEAT);
-		Net_WriteInt16 (atoi (argv[1]));
-		Net_WriteInt16 (atoi (argv[2]));
-		Net_WriteInt16 (argv.argc() == 3 ? ONFLOORZ/65536 : atoi (argv[3]));
+		Net_WriteByte (DEM_WARPCHEAT);
+		Net_WriteWord (atoi (argv[1]));
+		Net_WriteWord (atoi (argv[2]));
+		Net_WriteWord (argv.argc() == 3 ? ONFLOORZ/65536 : atoi (argv[3]));
 	}
 }
 
@@ -952,8 +951,8 @@ CCMD(thaw)
 	if (CheckCheatmode())
 		return;
 
-	Net_WriteInt8 (DEM_GENERICCHEAT);
-	Net_WriteInt8 (CHT_CLEARFROZENPROPS);
+	Net_WriteByte (DEM_GENERICCHEAT);
+	Net_WriteByte (CHT_CLEARFROZENPROPS);
 }
 
 //-----------------------------------------------------------------------------
@@ -1068,7 +1067,7 @@ static void PrintSecretString(const char *string, bool thislevel)
 				else colstr = TEXTCOLOR_GREEN;
 			}
 		}
-		auto brok = V_BreakLines(CurrentConsoleFont, twod->GetWidth()*95/100, *string == '$' ? GStrings.GetString(++string) : string);
+		auto brok = V_BreakLines(CurrentConsoleFont, twod->GetWidth()*95/100, *string == '$' ? GStrings(++string) : string);
 
 		for (auto &line : brok)
 		{
@@ -1201,7 +1200,7 @@ CCMD(idmus)
 				}
 				else
 				{
-					Printf("%s\n", GStrings.GetString("STSTR_NOMUS"));
+					Printf("%s\n", GStrings("STSTR_NOMUS"));
 					return;
 				}
 			}
@@ -1215,12 +1214,12 @@ CCMD(idmus)
 				if (info->Music.IsNotEmpty())
 				{
 					S_ChangeMusic(info->Music.GetChars(), info->musicorder);
-					Printf("%s\n", GStrings.GetString("STSTR_MUS"));
+					Printf("%s\n", GStrings("STSTR_MUS"));
 				}
 			}
 			else
 			{
-				Printf("%s\n", GStrings.GetString("STSTR_NOMUS"));
+				Printf("%s\n", GStrings("STSTR_NOMUS"));
 			}
 		}
 	}

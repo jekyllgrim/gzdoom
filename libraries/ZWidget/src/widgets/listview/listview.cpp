@@ -22,16 +22,6 @@ void ListView::Activate()
 		OnActivated();
 }
 
-void ListView::SetSelectedItem(int index)
-{
-	if (selectedItem != index && index >= 0 && index < items.size())
-	{
-		selectedItem = index;
-		if (OnChanged) OnChanged(selectedItem);
-		Update();
-	}
-}
-
 void ListView::ScrollToItem(int index)
 {
 	double itemHeight = 20.0;
@@ -96,7 +86,7 @@ void ListView::OnPaintFrame(Canvas* canvas)
 	canvas->fillRect(Rect::xywh(w - 1.0, 0.0, 1.0, h - 0.0), bordercolor);
 }
 
-bool ListView::OnMouseDown(const Point& pos, int key)
+void ListView::OnMouseDown(const Point& pos, int key)
 {
 	SetFocus();
 
@@ -105,23 +95,22 @@ bool ListView::OnMouseDown(const Point& pos, int key)
 		int index = (int)((pos.y - 5.0 + scrollbar->GetPosition()) / 20.0);
 		if (index >= 0 && (size_t)index < items.size())
 		{
-			SetSelectedItem(index);
+			selectedItem = index;
+			Update();
 			ScrollToItem(selectedItem);
 		}
 	}
-	return true;
 }
 
-bool ListView::OnMouseDoubleclick(const Point& pos, int key)
+void ListView::OnMouseDoubleclick(const Point& pos, int key)
 {
 	if (key == IK_LeftMouse)
 	{
 		Activate();
 	}
-	return true;
 }
 
-bool ListView::OnMouseWheel(const Point& pos, EInputKey key)
+void ListView::OnMouseWheel(const Point& pos, EInputKey key)
 {
 	if (key == IK_MouseWheelUp)
 	{
@@ -129,9 +118,8 @@ bool ListView::OnMouseWheel(const Point& pos, EInputKey key)
 	}
 	else if (key == IK_MouseWheelDown)
 	{
-		scrollbar->SetPosition(std::min(scrollbar->GetPosition() + 20.0, scrollbar->GetMax()));
+		scrollbar->SetPosition(std::max(scrollbar->GetPosition() + 20.0, scrollbar->GetMax()));
 	}
-	return true;
 }
 
 void ListView::OnKeyDown(EInputKey key)
@@ -140,7 +128,8 @@ void ListView::OnKeyDown(EInputKey key)
 	{
 		if (selectedItem + 1 < (int)items.size())
 		{
-			SetSelectedItem(selectedItem + 1);
+			selectedItem++;
+			Update();
 		}
 		ScrollToItem(selectedItem);
 	}
@@ -148,7 +137,8 @@ void ListView::OnKeyDown(EInputKey key)
 	{
 		if (selectedItem > 0)
 		{
-			SetSelectedItem(selectedItem - 1);
+			selectedItem--;
+			Update();
 		}
 		ScrollToItem(selectedItem);
 	}

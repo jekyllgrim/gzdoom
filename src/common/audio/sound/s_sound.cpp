@@ -749,8 +749,9 @@ sfxinfo_t *SoundEngine::LoadSound(sfxinfo_t *sfx)
 		{
 			auto sfxp = sfxdata.data();
 			int32_t dmxlen = LittleLong(((int32_t *)sfxp)[1]);
+
 			// If the sound is voc, use the custom loader.
-			if (size > 19 && memcmp (sfxp, "Creative Voice File", 19) == 0)
+			if (memcmp (sfxp, "Creative Voice File", 19) == 0)
 			{
 				sfx->data = GSnd->LoadSoundVoc(sfxp, size);
 			}
@@ -1825,8 +1826,7 @@ void S_SetSoundPaused(int state)
 
 	if ((state || i_soundinbackground) && !pauseext)
 	{
-		if (!paused)
-			S_ResumeSound(true);
+		S_ResumeSound(true);
 		if (GSnd != nullptr)
 		{
 			GSnd->SetInactive(SoundRenderer::INACTIVE_Active);

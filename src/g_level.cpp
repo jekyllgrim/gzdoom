@@ -776,12 +776,11 @@ void FLevelLocals::ChangeLevel(const char *levelname, int position, int inflags,
 	{
 		if (thiscluster != nextcluster || (thiscluster && !(thiscluster->flags & CLUSTER_HUB)))
 		{
-			const bool doReset = dmflags3 & DF3_PISTOL_START;
-			if (doReset || (nextinfo->flags2 & LEVEL2_RESETINVENTORY))
+			if (nextinfo->flags2 & LEVEL2_RESETINVENTORY)
 			{
 				inflags |= CHANGELEVEL_RESETINVENTORY;
 			}
-			if (doReset || (nextinfo->flags2 & LEVEL2_RESETHEALTH))
+			if (nextinfo->flags2 & LEVEL2_RESETHEALTH)
 			{
 				inflags |= CHANGELEVEL_RESETHEALTH;
 			}
@@ -1321,7 +1320,7 @@ IMPLEMENT_CLASS(DAutosaver, false, false)
 
 void DAutosaver::Tick ()
 {
-	Net_WriteInt8 (DEM_CHECKAUTOSAVE);
+	Net_WriteByte (DEM_CHECKAUTOSAVE);
 	Destroy ();
 }
 
@@ -1478,7 +1477,7 @@ void FLevelLocals::DoLoadLevel(const FString &nextmapname, int position, bool au
 		for (int i = 0; i<MAXPLAYERS; i++)
 		{
 			if (PlayerInGame(i) && Players[i]->mo != nullptr)
-				P_PlayerStartStomp(Players[i]->mo, !deathmatch);
+				P_PlayerStartStomp(Players[i]->mo);
 		}
 	}
 
@@ -1712,7 +1711,7 @@ int FLevelLocals::FinishTravel ()
 		pawn->flags2 &= ~MF2_BLASTED;
 		if (oldpawn != nullptr)
 		{
-			PlayerPointerSubstitution (oldpawn, pawn, true);
+			StaticPointerSubstitution (oldpawn, pawn);
 			oldpawn->Destroy();
 		}
 		if (pawndup != NULL)
@@ -1855,7 +1854,6 @@ void FLevelLocals::Init()
 	flags2 |= info->flags2;
 	flags3 |= info->flags3;
 	levelnum = info->levelnum;
-	LightningSound = info->LightningSound;
 	Music = info->Music;
 	musicorder = info->musicorder;
 	MusicVolume = 1.f;
@@ -2450,7 +2448,7 @@ DEFINE_ACTION_FUNCTION(FLevelLocals, GetClusterName)
 	if (cluster)
 	{
 		if (cluster->flags & CLUSTER_LOOKUPNAME)
-			retval = GStrings.GetString(cluster->ClusterName);
+			retval = GStrings(cluster->ClusterName);
 		else
 			retval = cluster->ClusterName;
 	}

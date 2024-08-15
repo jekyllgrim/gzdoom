@@ -71,16 +71,9 @@ static FString ResolveIncludePath(const FString &path,const FString &lumpname){
 			{
 				relativePath = relativePath.Mid(3);
 				auto slash_index = fullPath.LastIndexOf("/");
-				if (slash_index != -1)
-				{
+				if (slash_index != -1) {
 					fullPath = fullPath.Mid(0, slash_index);
-				}
-				else if (fullPath.IsNotEmpty())
-				{
-					fullPath = "";
-				}
-				else
-				{
+				} else {
 					pathOk = false;
 					break;
 				}

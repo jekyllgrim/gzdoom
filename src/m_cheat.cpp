@@ -66,7 +66,7 @@ void cht_DoMDK(player_t *player, const char *mod)
 {
 	if (player->mo == NULL)
 	{
-		Printf("%s\n", GStrings.GetString("TXT_WHAT_KILL"));
+		Printf("%s\n", GStrings("TXT_WHAT_KILL"));
 	}
 	else if (!deathmatch)
 	{
@@ -119,41 +119,41 @@ void cht_DoCheat (player_t *player, int cheat)
 	case CHT_GOD:
 		player->cheats ^= CF_GODMODE;
 		if (player->cheats & CF_GODMODE)
-			msg = GStrings.GetString("STSTR_DQDON");
+			msg = GStrings("STSTR_DQDON");
 		else
-			msg = GStrings.GetString("STSTR_DQDOFF");
+			msg = GStrings("STSTR_DQDOFF");
 		break;
 
 	case CHT_BUDDHA:
 		player->cheats ^= CF_BUDDHA;
 		if (player->cheats & CF_BUDDHA)
-			msg = GStrings.GetString("TXT_BUDDHAON");
+			msg = GStrings("TXT_BUDDHAON");
 		else
-			msg = GStrings.GetString("TXT_BUDDHAOFF");
+			msg = GStrings("TXT_BUDDHAOFF");
 		break;
 
 	case CHT_GOD2:
 		player->cheats ^= CF_GODMODE2;
 		if (player->cheats & CF_GODMODE2)
-			msg = GStrings.GetString("STSTR_DQD2ON");
+			msg = GStrings("STSTR_DQD2ON");
 		else
-			msg = GStrings.GetString("STSTR_DQD2OFF");
+			msg = GStrings("STSTR_DQD2OFF");
 		break;
 
 	case CHT_BUDDHA2:
 		player->cheats ^= CF_BUDDHA2;
 		if (player->cheats & CF_BUDDHA2)
-			msg = GStrings.GetString("TXT_BUDDHA2ON");
+			msg = GStrings("TXT_BUDDHA2ON");
 		else
-			msg = GStrings.GetString("TXT_BUDDHA2OFF");
+			msg = GStrings("TXT_BUDDHA2OFF");
 		break;
 
 	case CHT_NOCLIP:
 		player->cheats ^= CF_NOCLIP;
 		if (player->cheats & CF_NOCLIP)
-			msg = GStrings.GetString("STSTR_NCON");
+			msg = GStrings("STSTR_NCON");
 		else
-			msg = GStrings.GetString("STSTR_NCOFF");
+			msg = GStrings("STSTR_NCOFF");
 		break;
 
 	case CHT_NOCLIP2:
@@ -161,12 +161,12 @@ void cht_DoCheat (player_t *player, int cheat)
 		if (player->cheats & CF_NOCLIP2)
 		{
 			player->cheats |= CF_NOCLIP;
-			msg = GStrings.GetString("STSTR_NC2ON");
+			msg = GStrings("STSTR_NC2ON");
 		}
 		else
 		{
 			player->cheats &= ~CF_NOCLIP;
-			msg = GStrings.GetString("STSTR_NC2OFF");
+			msg = GStrings("STSTR_NC2OFF");
 		}
 		if (player->mo->Vel.X == 0) player->mo->Vel.X = MinVel;	// force some lateral movement so that internal variables are up to date
 		break;
@@ -174,9 +174,9 @@ void cht_DoCheat (player_t *player, int cheat)
 	case CHT_NOVELOCITY:
 		player->cheats ^= CF_NOVELOCITY;
 		if (player->cheats & CF_NOVELOCITY)
-			msg = GStrings.GetString("TXT_LEADBOOTSON");
+			msg = GStrings("TXT_LEADBOOTSON");
 		else
-			msg = GStrings.GetString("TXT_LEADBOOTSOFF");
+			msg = GStrings("TXT_LEADBOOTSOFF");
 		break;
 
 	case CHT_FLY:
@@ -187,13 +187,13 @@ void cht_DoCheat (player_t *player, int cheat)
 			{
 				player->mo->flags |= MF_NOGRAVITY;
 				player->mo->flags2 |= MF2_FLY;
-				msg = GStrings.GetString("TXT_LIGHTER");
+				msg = GStrings("TXT_LIGHTER");
 			}
 			else
 			{
 				player->mo->flags &= ~MF_NOGRAVITY;
 				player->mo->flags2 &= ~MF2_FLY;
-				msg = GStrings.GetString("TXT_GRAVITY");
+				msg = GStrings("TXT_GRAVITY");
 			}
 		}
 		break;
@@ -206,25 +206,25 @@ void cht_DoCheat (player_t *player, int cheat)
 	case CHT_NOTARGET:
 		player->cheats ^= CF_NOTARGET;
 		if (player->cheats & CF_NOTARGET)
-			msg = GStrings.GetString("TXT_NOTARGET_ON");
+			msg = GStrings("TXT_NOTARGET_ON");
 		else
-			msg = GStrings.GetString("TXT_NOTARGET_OFF");
+			msg = GStrings("TXT_NOTARGET_OFF");
 		break;
 
 	case CHT_ANUBIS:
 		player->cheats ^= CF_FRIGHTENING;
 		if (player->cheats & CF_FRIGHTENING)
-			msg = GStrings.GetString("TXT_ANUBIS_ON");
+			msg = GStrings("TXT_ANUBIS_ON");
 		else
-			msg = GStrings.GetString("TXT_ANUBIS_OFF");
+			msg = GStrings("TXT_ANUBIS_OFF");
 		break;
 
 	case CHT_CHASECAM:
 		player->cheats ^= CF_CHASECAM;
 		if (player->cheats & CF_CHASECAM)
-			msg = GStrings.GetString("TXT_CHASECAM_ON");
+			msg = GStrings("TXT_CHASECAM_ON");
 		else
-			msg = GStrings.GetString("TXT_CHASECAM_OFF");
+			msg = GStrings("TXT_CHASECAM_OFF");
 		R_ResetViewInterpolation ();
 		break;
 
@@ -236,7 +236,7 @@ void cht_DoCheat (player_t *player, int cheat)
 			{
 				player->mo->GiveInventoryType (type);
 			}
-			msg = GStrings.GetString("STSTR_CHOPPERS");
+			msg = GStrings("STSTR_CHOPPERS");
 		}
 		// [RH] The original cheat also set powers[pw_invulnerability] to true.
 		// Since this is a timer and not a boolean, it effectively turned off
@@ -251,12 +251,12 @@ void cht_DoCheat (player_t *player, int cheat)
 			if (item != NULL)
 			{
 				item->Destroy ();
-				msg = GStrings.GetString("TXT_CHEATPOWEROFF");
+				msg = GStrings("TXT_CHEATPOWEROFF");
 			}
 			else
 			{
 				player->mo->GiveInventoryType (PClass::FindActor(NAME_PowerWeaponLevel2));
-				msg = GStrings.GetString("TXT_CHEATPOWERON");
+				msg = GStrings("TXT_CHEATPOWERON");
 			}
 		}
 		break;
@@ -267,7 +267,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		cht_Give (player, "ammo");
 		cht_Give (player, "keys");
 		cht_Give (player, "armor");
-		msg = GStrings.GetString("STSTR_KFAADDED");
+		msg = GStrings("STSTR_KFAADDED");
 		break;
 
 	case CHT_IDFA:
@@ -275,7 +275,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		cht_Give (player, "weapons");
 		cht_Give (player, "ammo");
 		cht_Give (player, "armor");
-		msg = GStrings.GetString("STSTR_FAADDED");
+		msg = GStrings("STSTR_FAADDED");
 		break;
 
 	case CHT_BEHOLDV:
@@ -320,7 +320,7 @@ void cht_DoCheat (player_t *player, int cheat)
 				item->Destroy ();
 			}
 		}
-		msg = GStrings.GetString("STSTR_BEHOLDX");
+		msg = GStrings("STSTR_BEHOLDX");
 		break;
 
 	case CHT_MASSACRE:
@@ -330,12 +330,12 @@ void cht_DoCheat (player_t *player, int cheat)
 			// killough 3/22/98: make more intelligent about plural
 			if (killcount == 1)
 			{
-				msg = GStrings.GetString(cheat == CHT_MASSACRE? "TXT_MONSTER_KILLED" : "TXT_BADDIE_KILLED");
+				msg = GStrings(cheat == CHT_MASSACRE? "TXT_MONSTER_KILLED" : "TXT_BADDIE_KILLED");
 			}
 			else
 			{
 				// Note: Do not use the language string directly as a format template!
-				smsg = GStrings.GetString(cheat == CHT_MASSACRE? "TXT_MONSTERS_KILLED" : "TXT_BADDIES_KILLED");
+				smsg = GStrings(cheat == CHT_MASSACRE? "TXT_MONSTERS_KILLED" : "TXT_BADDIES_KILLED");
 				FStringf countstr("%d", killcount);
 				smsg.Substitute("%d", countstr);
 				msg = smsg.GetChars();
@@ -347,13 +347,13 @@ void cht_DoCheat (player_t *player, int cheat)
 		if (player->mo != NULL && player->playerstate == PST_LIVE)
 		{
 			player->health = player->mo->health = player->mo->GetDefault()->health;
-			msg = GStrings.GetString("TXT_CHEATHEALTH");
+			msg = GStrings("TXT_CHEATHEALTH");
 		}
 		break;
 
 	case CHT_KEYS:
 		cht_Give (player, "keys");
-		msg = GStrings.GetString("TXT_CHEATKEYS");
+		msg = GStrings("TXT_CHEATKEYS");
 		break;
 
 	// [GRB]
@@ -362,7 +362,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		{
 			if (player->mo->IsKindOf("PlayerChunk"))
 			{
-				Printf("%s\n", GStrings.GetString("TXT_NO_RESURRECT"));
+				Printf("%s\n", GStrings("TXT_NO_RESURRECT"));
 				return;
 			}
 			else
@@ -374,52 +374,52 @@ void cht_DoCheat (player_t *player, int cheat)
 
 	case CHT_GIMMIEA:
 		cht_Give (player, "ArtiInvulnerability");
-		msg = GStrings.GetString("TAG_ARTIINVULNERABILITY");
+		msg = GStrings("TAG_ARTIINVULNERABILITY");
 		break;
 
 	case CHT_GIMMIEB:
 		cht_Give (player, "ArtiInvisibility");
-		msg = GStrings.GetString("TAG_ARTIINVISIBILITY");
+		msg = GStrings("TAG_ARTIINVISIBILITY");
 		break;
 
 	case CHT_GIMMIEC:
 		cht_Give (player, "ArtiHealth");
-		msg = GStrings.GetString("TAG_ARTIHEALTH");
+		msg = GStrings("TAG_ARTIHEALTH");
 		break;
 
 	case CHT_GIMMIED:
 		cht_Give (player, "ArtiSuperHealth");
-		msg = GStrings.GetString("TAG_ARTISUPERHEALTH");
+		msg = GStrings("TAG_ARTISUPERHEALTH");
 		break;
 
 	case CHT_GIMMIEE:
 		cht_Give (player, "ArtiTomeOfPower");
-		msg = GStrings.GetString("TAG_ARTITOMEOFPOWER");
+		msg = GStrings("TAG_ARTITOMEOFPOWER");
 		break;
 
 	case CHT_GIMMIEF:
 		cht_Give (player, "ArtiTorch");
-		msg = GStrings.GetString("TAG_ARTITORCH");
+		msg = GStrings("TAG_ARTITORCH");
 		break;
 
 	case CHT_GIMMIEG:
 		cht_Give (player, "ArtiTimeBomb");
-		msg = GStrings.GetString("TAG_ARTIFIREBOMB");
+		msg = GStrings("TAG_ARTIFIREBOMB");
 		break;
 
 	case CHT_GIMMIEH:
 		cht_Give (player, "ArtiEgg");
-		msg = GStrings.GetString("TAG_ARTIEGG");
+		msg = GStrings("TAG_ARTIEGG");
 		break;
 
 	case CHT_GIMMIEI:
 		cht_Give (player, "ArtiFly");
-		msg = GStrings.GetString("TAG_ARTIFLY");
+		msg = GStrings("TAG_ARTIFLY");
 		break;
 
 	case CHT_GIMMIEJ:
 		cht_Give (player, "ArtiTeleport");
-		msg = GStrings.GetString("TAG_ARTITELEPORT");
+		msg = GStrings("TAG_ARTITELEPORT");
 		break;
 
 	case CHT_GIMMIEZ:
@@ -427,17 +427,17 @@ void cht_DoCheat (player_t *player, int cheat)
 		{
 			cht_Give (player, "artifacts");
 		}
-		msg = GStrings.GetString("TAG_ALL_ARTIFACTS");
+		msg = GStrings("TAG_ALL_ARTIFACTS");
 		break;
 
 	case CHT_TAKEWEAPS:
 		cht_Takeweaps(player);
-		msg = GStrings.GetString("TXT_CHEATIDKFA");
+		msg = GStrings("TXT_CHEATIDKFA");
 		break;
 
 	case CHT_NOWUDIE:
 		cht_Suicide (player);
-		msg = GStrings.GetString("TXT_CHEATIDDQD");
+		msg = GStrings("TXT_CHEATIDDQD");
 		break;
 
 	case CHT_ALLARTI:
@@ -445,18 +445,18 @@ void cht_DoCheat (player_t *player, int cheat)
 		{
 			cht_Give (player, "artifacts");
 		}
-		msg = GStrings.GetString("TXT_CHEATARTIFACTS3");
+		msg = GStrings("TXT_CHEATARTIFACTS3");
 		break;
 
 	case CHT_PUZZLE:
 		cht_Give (player, "puzzlepieces");
-		msg = GStrings.GetString("TXT_CHEATARTIFACTS3");
+		msg = GStrings("TXT_CHEATARTIFACTS3");
 		break;
 
 	case CHT_MDK:
 		if (player->mo == nullptr)
 		{
-			Printf ("%s\n", GStrings.GetString("TXT_WHAT_KILL"));
+			Printf ("%s\n", GStrings("TXT_WHAT_KILL"));
 			return;
 		}
 		else if (!deathmatch)
@@ -471,7 +471,7 @@ void cht_DoCheat (player_t *player, int cheat)
 
 	case CHT_DONNYTRUMP:
 		cht_Give (player, "HealthTraining");
-		msg = GStrings.GetString("TXT_MIDASTOUCH");
+		msg = GStrings("TXT_MIDASTOUCH");
 		break;
 
 	case CHT_LEGO:
@@ -507,34 +507,34 @@ void cht_DoCheat (player_t *player, int cheat)
 		cht_Give (player, "MedPatch");
 		cht_Give (player, "MedicalKit");
 		cht_Give (player, "SurgeryKit");
-		msg = GStrings.GetString("TXT_GOTSTUFF");
+		msg = GStrings("TXT_GOTSTUFF");
 		break;
 
 	case CHT_PUMPUPP:
 		cht_Give (player, "AmmoSatchel");
-		msg = GStrings.GetString("TXT_GOTSTUFF");
+		msg = GStrings("TXT_GOTSTUFF");
 		break;
 
 	case CHT_PUMPUPS:
 		cht_Give (player, "UpgradeStamina", 10);
 		cht_Give (player, "UpgradeAccuracy");
-		msg = GStrings.GetString("TXT_GOTSTUFF");
+		msg = GStrings("TXT_GOTSTUFF");
 		break;
 
 	case CHT_CLEARFROZENPROPS:
 		player->cheats &= ~(CF_FROZEN|CF_TOTALLYFROZEN);
-		msg = GStrings.GetString("TXT_NOT_FROZEN");
+		msg = GStrings("TXT_NOT_FROZEN");
 		break;
 
 	case CHT_FREEZE:
 		globalchangefreeze ^= 1;
 		if (globalfreeze ^ globalchangefreeze)
 		{
-			msg = GStrings.GetString("TXT_FREEZEON");
+			msg = GStrings("TXT_FREEZEON");
 		}
 		else
 		{
-			msg = GStrings.GetString("TXT_FREEZEOFF");
+			msg = GStrings("TXT_FREEZEOFF");
 		}
 		break;
 	}
@@ -546,7 +546,7 @@ void cht_DoCheat (player_t *player, int cheat)
 		Printf ("%s\n", msg);
 	else if (cheat != CHT_CHASECAM)
 	{
-		FString message = GStrings.GetString("TXT_X_CHEATS");
+		FString message = GStrings("TXT_X_CHEATS");
 		message.Substitute("%s", player->userinfo.GetName());
 		Printf("%s: %s\n", message.GetChars(), msg);
 	}
@@ -626,13 +626,10 @@ public:
 		double plyrdmgfact = Pawn->DamageFactor;
 		Pawn->DamageFactor = 1.;
 		P_DamageMobj (Pawn, Pawn, Pawn, TELEFRAG_DAMAGE, NAME_Suicide);
-		if (Pawn != nullptr)
+		Pawn->DamageFactor = plyrdmgfact;
+		if (Pawn->health <= 0)
 		{
-			Pawn->DamageFactor = plyrdmgfact;
-			if (Pawn->health <= 0)
-			{
-				Pawn->flags &= ~MF_SHOOTABLE;
-			}
+			Pawn->flags &= ~MF_SHOOTABLE;
 		}
 		Destroy();
 	}
@@ -679,6 +676,6 @@ CCMD (mdk)
 		return;
 
 	const char *name = argv.argc() > 1 ? argv[1] : "";
-	Net_WriteInt8 (DEM_MDK);
+	Net_WriteByte (DEM_MDK);
 	Net_WriteString(name);
 }

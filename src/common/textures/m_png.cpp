@@ -510,8 +510,7 @@ bool M_ReadIDAT (FileReader &file, uint8_t *buffer, int width, int height, int p
 	{
 		i += bytesPerRowOut * 2;
 	}
-	TArray<Byte> inputArray(i, true);
-	inputLine = inputArray.data();
+	inputLine = (Byte *)alloca (i);
 	adam7buff[0] = inputLine + 4 + bytesPerRowOut;
 	adam7buff[1] = adam7buff[0] + bytesPerRowOut;
 	adam7buff[2] = adam7buff[1] + bytesPerRowOut;
@@ -926,8 +925,7 @@ bool M_SaveBitmap(const uint8_t *from, ESSType color_type, int width, int height
 		temprow[i] = &temprow_storage[temprow_size * i];
 	}
 
-	TArray<Byte> array(PNG_WRITE_SIZE, true);
-	auto buffer = array.data();
+	Byte buffer[PNG_WRITE_SIZE];
 	z_stream stream;
 	int err;
 	int y;
